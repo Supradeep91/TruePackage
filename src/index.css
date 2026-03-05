@@ -1,0 +1,38 @@
+@import "tailwindcss";
+
+:root {
+  --bg0: #06101c;
+  --bg1: #0d1829;
+  --bg2: #111f35;
+  --bgi: #090f1e;
+  --gold: #e8a020;
+  --goldD: rgba(232,160,32,.12);
+  --goldL: rgba(232,160,32,.28);
+  --grn: #00c98b;
+  --grnD: rgba(0,201,139,.08);
+  --grnL: rgba(0,201,139,.25);
+  --red: #ff5b5b;
+  --redD: rgba(255,91,91,.08);
+  --t1: #edf2f7;
+  --t2: #8a9bb8;
+  --t3: #4a6080;
+  --b0: rgba(255,255,255,.05);
+  --b1: rgba(255,255,255,.09);
+}
+
+
+.currency-input {
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--b1);
+  border-radius: 0;
+  color: var(--gold);
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+  text-align: right;
+  width: 120px;
+  padding: 4px 0;
+  outline: none;
+}

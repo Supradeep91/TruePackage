@@ -3,6 +3,7 @@ import { CITIES } from "./data/cities";
 import { calcDE } from "./calc/calcDE";
 import { calcIN } from "./calc/calcIN";
 import { calcThresholds, calcBreakEven, calcMatchCTC, calcOpp } from "./calc/calcHelpers";
+import { getMarketRange } from "./data/salaryRanges";
 import { useURLState } from "./hooks/useURLState";
 import { Acc } from "./components/shared/Accordion";
 import { pillStyle } from "./components/shared/PillSelector";
@@ -88,7 +89,7 @@ const S = {
 };
 
 // ─── CARD D: in2de ────────────────────────────────────────────────────────────
-function CardD_in({gross,thr,be,deCity,inCity,tc,noKirche,savings,de,remEur,rate,dc}:{gross:number;thr:Thr;be:BE;deCity:string;inCity:string;tc:number;noKirche:boolean;savings:number;de:DE;remEur:number;rate:number;dc:any}) {
+function CardD_in({gross,thr,be,deCity,inCity,tc,noKirche,savings,de,remEur,rate,dc,fam,field,seniority}:{gross:number;thr:Thr;be:BE;deCity:string;inCity:string;tc:number;noKirche:boolean;savings:number;de:DE;remEur:number;rate:number;dc:any;fam:Fam;field:string;seniority:string}) {
   const isAboveComfort = gross >= thr.comfort;
   const isAboveParity  = gross >= thr.match;
   const isAboveFloor   = gross >= thr.floor;
@@ -169,6 +170,31 @@ function CardD_in({gross,thr,be,deCity,inCity,tc,noKirche,savings,de,remEur,rate
       <div style={{textAlign:"center",fontSize:14,color:C.t2,padding:"0 12px",marginBottom:24}}>
         {actionText}
       </div>
+
+      {/* Market Position Block — shown when profession is not 'Other' */}
+      {field!=='Other'&&(()=>{
+        const marketRange=getMarketRange(field,deCity,seniority);
+        if(!marketRange) return null;
+        const [marketLow,marketHigh]=marketRange;
+        const marketPos=gross>=marketHigh?'above':gross>=marketLow?'within':'below';
+        const marketColor=marketPos==='above'?'#00c98b':marketPos==='within'?'#e8a020':'#ff5b5b';
+        const mBg=marketPos==='above'?'rgba(0,201,139,0.08)':marketPos==='within'?'rgba(232,160,32,0.08)':'rgba(255,91,91,0.08)';
+        const mBd=marketPos==='above'?'rgba(0,201,139,0.25)':marketPos==='within'?'rgba(232,160,32,0.25)':'rgba(255,91,91,0.25)';
+        const marketLabel=marketPos==='above'?'ABOVE MARKET':marketPos==='within'?'WITHIN MARKET RANGE':'BELOW MARKET';
+        return (
+          <div style={{background:C.bg1,border:'1px solid rgba(255,255,255,0.08)',borderRadius:14,padding:16,marginBottom:20,marginLeft:4,marginRight:4}}>
+            <div style={{fontSize:12,color:C.t2,marginBottom:6}}>{field} · {deCity} · {seniority}</div>
+            <div style={{fontSize:13,color:C.t2,marginBottom:10}}>Market range: €{(marketLow/1000).toFixed(0)}K – €{(marketHigh/1000).toFixed(0)}K</div>
+            <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:10}}>
+              <span style={{fontSize:13,color:C.t1,fontWeight:600}}>Your offer: €{Math.round(gross/1000)}K</span>
+              <span style={{display:"inline-flex",alignItems:"center",fontSize:10,fontWeight:700,letterSpacing:"1px",textTransform:"uppercase" as const,padding:"2px 8px",borderRadius:20,color:marketColor,background:mBg,border:`1px solid ${mBd}`}}>{marketLabel}</span>
+            </div>
+            {marketPos==='below'&&<div style={{fontSize:13,color:C.t1,lineHeight:1.5}}>Counter to at least €{(marketLow/1000).toFixed(0)}K — both market rate and your lifestyle threshold agree.</div>}
+            {marketPos==='within'&&<div style={{fontSize:13,color:C.t1,lineHeight:1.5}}>Your offer is within market. Negotiate toward the upper range: €{(marketHigh/1000).toFixed(0)}K.</div>}
+            {marketPos==='above'&&<div style={{fontSize:13,color:C.t1,lineHeight:1.5}}>Your offer is above market. Strong position — focus on non-salary terms.</div>}
+          </div>
+        );
+      })()}
 
       {/* Collapsible breakdown */}
       <div style={{textAlign:"center",marginBottom:calcOpen?16:0}}>
@@ -595,11 +621,11 @@ function CardB_in({de,ic,ctc,sk3,rate,noKirche,remEur,fam,dc,deCity,view}:{de:DE
     gym:'none',
   });
 
-  // Lifestyle-driven rent
+  // Lifestyle-driven rent — all 12 German cities (Numbeo March 2026)
   const rentRanges={
-    wg:{Munich:[700,1000],Berlin:[500,700],Frankfurt:[600,900],Hamburg:[550,800],Stuttgart:[520,780],Nuremberg:[380,600],Cologne:[440,680],Dusseldorf:[440,700]},
-    '1br':{Munich:[1200,1700],Berlin:[800,1200],Frankfurt:[1050,1500],Hamburg:[950,1350],Stuttgart:[900,1300],Nuremberg:[650,1000],Cologne:[760,1150],Dusseldorf:[760,1200]},
-    '2br':{Munich:[1700,2300],Berlin:[1100,1650],Frankfurt:[1450,2050],Hamburg:[1300,1850],Stuttgart:[1250,1750],Nuremberg:[900,1400],Cologne:[1050,1550],Dusseldorf:[1050,1600]},
+    wg:{Munich:[700,1000],Berlin:[500,700],Frankfurt:[600,900],Hamburg:[550,800],Stuttgart:[520,780],Nuremberg:[380,600],Cologne:[440,680],Dusseldorf:[440,700],Karlsruhe:[420,650],Leipzig:[320,500],Dresden:[330,520],Mannheim:[430,660]},
+    '1br':{Munich:[1200,1700],Berlin:[800,1200],Frankfurt:[1050,1500],Hamburg:[950,1350],Stuttgart:[900,1300],Nuremberg:[650,1000],Cologne:[760,1150],Dusseldorf:[760,1200],Karlsruhe:[900,1350],Leipzig:[650,1000],Dresden:[700,1100],Mannheim:[950,1400]},
+    '2br':{Munich:[1700,2300],Berlin:[1100,1650],Frankfurt:[1450,2050],Hamburg:[1300,1850],Stuttgart:[1250,1750],Nuremberg:[900,1400],Cologne:[1050,1550],Dusseldorf:[1050,1600],Karlsruhe:[1250,1750],Leipzig:[900,1350],Dresden:[950,1450],Mannheim:[1300,1850]},
   };
   const rentRange=(rentRanges[lifestyle.apartment as keyof typeof rentRanges] as Record<string,[number,number]>)[deCity]||rentRanges[lifestyle.apartment as keyof typeof rentRanges]['Munich'];
   const rentMid=Math.round((rentRange[0]+rentRange[1])/2);
@@ -812,11 +838,11 @@ function CardB_de({de,india,match,ic,ctc,fam,inCity,view}:{de:DE;india:IN;match:
     gym:'none',
   });
 
-  // Lifestyle-driven rent
+  // Lifestyle-driven rent — all 13 Indian cities (99acres, NoBroker, QuikrHomes March 2026)
   const inRentRanges={
-    pg:{Bangalore:[12000,18000],Hyderabad:[10000,15000],Pune:[9000,14000],Mumbai:[15000,22000],'Delhi NCR':[10000,16000],Chennai:[9000,14000],Kolkata:[7000,11000],Ahmedabad:[6000,10000]},
-    '1bhk':{Bangalore:[25000,35000],Hyderabad:[18000,28000],Pune:[17000,26000],Mumbai:[35000,55000],'Delhi NCR':[22000,32000],Chennai:[17000,25000],Kolkata:[12000,20000],Ahmedabad:[11000,18000]},
-    '2bhk':{Bangalore:[40000,55000],Hyderabad:[32000,45000],Pune:[28000,40000],Mumbai:[60000,90000],'Delhi NCR':[35000,55000],Chennai:[28000,42000],Kolkata:[18000,30000],Ahmedabad:[16000,28000]},
+    pg:{Bangalore:[12000,18000],Hyderabad:[10000,15000],Pune:[9000,14000],Mumbai:[15000,22000],'Delhi NCR':[10000,16000],Chennai:[9000,14000],Kolkata:[7000,11000],Ahmedabad:[6000,10000],Gurgaon:[12000,20000],Noida:[10000,15000],Kochi:[8000,12000],Indore:[6000,10000],Coimbatore:[6000,10000]},
+    '1bhk':{Bangalore:[25000,35000],Hyderabad:[18000,28000],Pune:[17000,26000],Mumbai:[35000,55000],'Delhi NCR':[22000,32000],Chennai:[17000,25000],Kolkata:[12000,20000],Ahmedabad:[11000,18000],Gurgaon:[22000,35000],Noida:[17000,28000],Kochi:[12000,20000],Indore:[9000,15000],Coimbatore:[9000,14000]},
+    '2bhk':{Bangalore:[40000,55000],Hyderabad:[32000,45000],Pune:[28000,40000],Mumbai:[60000,90000],'Delhi NCR':[35000,55000],Chennai:[28000,42000],Kolkata:[18000,30000],Ahmedabad:[16000,28000],Gurgaon:[35000,55000],Noida:[25000,38000],Kochi:[18000,28000],Indore:[13000,20000],Coimbatore:[13000,18000]},
   };
   const inRentRange=(inRentRanges[lifestyleIn.apartment as keyof typeof inRentRanges] as Record<string,[number,number]>)[inCity]||inRentRanges[lifestyleIn.apartment as keyof typeof inRentRanges]['Bangalore'];
   const inRentMid=Math.round((inRentRange[0]+inRentRange[1])/2);
@@ -831,8 +857,8 @@ function CardB_de({de,india,match,ic,ctc,fam,inCity,view}:{de:DE;india:IN;match:
 
   // Lifestyle-driven transport
   const inTransCosts={
-    cab:{Bangalore:8000,Hyderabad:7000,Pune:6000,Mumbai:5000,'Delhi NCR':7000,Chennai:6000,Kolkata:5000,Ahmedabad:5000},
-    car:{Bangalore:18000,Hyderabad:16000,Pune:15000,Mumbai:20000,'Delhi NCR':17000,Chennai:15000,Kolkata:14000,Ahmedabad:13000},
+    cab:{Bangalore:8000,Hyderabad:7000,Pune:6000,Mumbai:5000,'Delhi NCR':7000,Chennai:6000,Kolkata:5000,Ahmedabad:5000,Gurgaon:9000,Noida:7000,Kochi:6000,Indore:5000,Coimbatore:5000},
+    car:{Bangalore:18000,Hyderabad:16000,Pune:15000,Mumbai:20000,'Delhi NCR':17000,Chennai:15000,Kolkata:14000,Ahmedabad:13000,Gurgaon:20000,Noida:18000,Kochi:14000,Indore:12000,Coimbatore:11000},
   };
   const inTransAmount=lifestyleIn.transport==='company'?0:(inTransCosts[lifestyleIn.transport as 'cab'|'car'] as Record<string,number>)[inCity]||inTransCosts[lifestyleIn.transport as 'cab'|'car']['Bangalore'];
   const inTransAccordion=lifestyleIn.transport==='cab'?`Ola/Uber daily commute in ${inCity}. ₹${inTransAmount.toLocaleString()}/mo estimate. Auto-rickshaws cheaper for short distances.`:lifestyleIn.transport==='car'?`Own car in ${inCity}. ₹${inTransAmount.toLocaleString()}/mo includes EMI ₹10–12K + fuel ₹4–5K + parking ₹2–3K.`:'Company cab provided — no personal transport cost. Confirm this with your new employer before joining.';
@@ -1256,6 +1282,9 @@ export default function App() {
   const [advOpen,setAdvOpen]=useState(false);
   const [savings,setSavings]=useState(5000);
   const [oppLifestyle,setOppLifestyle]=useState<OppLifestyle>({apartment:'wg',cooking:'mix',car:false,gym:'none'});
+  const [field,setField]=useState('Software Engineer / IT');
+  const [seniority,setSeniority]=useState('Mid (4–8 yrs)');
+  const [sourcesOpen,setSourcesOpen]=useState(false);
   const [oppResults,setOppResults]=useState<OppResult|null>(null);
   const [checkedOpp,setCheckedOpp]=useState<Record<string,boolean>>({blockacc:false,health:false,cvde:false,lang:false,network:false});
   const [whatIfGross,setWhatIfGross]=useState<number|null>(null);
@@ -1325,7 +1354,7 @@ export default function App() {
         const thr=calcThresholds(deCity,rem,rate,fam),be=calcBreakEven(gross,thr,de,india,rate,deCity,rem,remittanceCurrency,commitments,commitmentsCurrency);
         const dc=CITIES.de[deCity]||CITIES.de.Munich,ic=CITIES.in[inCity]||CITIES.in.Bangalore;
         ai=await runAI("in2de",inCity,deCity,gross,ctc,fam,rem,de,india,remEur,null,rate);
-        cardD=<CardD_in gross={gross} thr={thr} be={be} deCity={deCity} inCity={inCity} tc={tcv} noKirche={noKirche} savings={savings} de={de} remEur={remEur} rate={rate} dc={dc}/>;
+        cardD=<CardD_in gross={gross} thr={thr} be={be} deCity={deCity} inCity={inCity} tc={tcv} noKirche={noKirche} savings={savings} de={de} remEur={remEur} rate={rate} dc={dc} fam={fam} field={field} seniority={seniority}/>;
         cardA=<CardA_in de={de} india={india} remEur={remEur} dc={dc} ic={ic} ctc={ctc} gross={gross} isM={isM} sk3={sk3} noKirche={noKirche}/>;
         cardBDed=<CardB_in de={de} ic={ic} ctc={ctc} sk3={sk3} rate={rate} noKirche={noKirche} remEur={remEur} fam={fam} dc={dc} deCity={deCity} view="deductions"/>;
         cardBLiv=<CardB_in de={de} ic={ic} ctc={ctc} sk3={sk3} rate={rate} noKirche={noKirche} remEur={remEur} fam={fam} dc={dc} deCity={deCity} view="living"/>;
@@ -1356,8 +1385,8 @@ export default function App() {
   }
 
 
-  const inCities=["Bangalore","Hyderabad","Pune","Mumbai","Delhi NCR","Chennai","Kolkata","Ahmedabad"];
-  const deCities=["Munich","Berlin","Frankfurt","Hamburg","Stuttgart","Nuremberg","Cologne","Dusseldorf"];
+  const inCities=["Ahmedabad","Bangalore","Chennai","Coimbatore","Delhi NCR","Gurgaon","Hyderabad","Indore","Kochi","Kolkata","Mumbai","Noida","Pune"];
+  const deCities=["Berlin","Cologne","Dresden","Dusseldorf","Frankfurt","Hamburg","Karlsruhe","Leipzig","Mannheim","Munich","Nuremberg","Stuttgart"];
 
   // Pinned verdict strip — computed values (all arithmetic extracted to consts)
   const _rthr = results?.thr;
@@ -1611,6 +1640,29 @@ export default function App() {
                   </div>
                 ))}
               </div>
+
+              {/* Profession + Seniority — in2de only */}
+              {dir==="in2de"&&(
+                <>
+                  <div>
+                    <div style={{fontSize:11,fontWeight:600,letterSpacing:"1.8px",textTransform:"uppercase",color:C.t3,marginBottom:8}}>Profession / Field</div>
+                    <div style={{position:"relative"}}>
+                      <select value={field} onChange={e=>setField(e.target.value)} style={{width:"100%",background:C.bgi,border:`1px solid ${C.b1}`,borderRadius:8,color:C.t1,fontFamily:"Outfit,sans-serif",fontSize:14,padding:"12px 36px 12px 14px"}}>
+                        {['Software Engineer / IT','Data / ML Engineer','Mechanical Engineer','Electrical Engineer','Civil / Structural Engineer','Finance / Accounting','Product Manager','Other'].map(o=><option key={o} style={{background:"#0d1829"}}>{o}</option>)}
+                      </select>
+                      <span style={{position:"absolute",right:14,top:"50%",transform:"translateY(-50%)",color:C.t3,pointerEvents:"none"}}>▾</span>
+                    </div>
+                  </div>
+                  <div>
+                    <div style={{fontSize:11,fontWeight:600,letterSpacing:"1.8px",textTransform:"uppercase",color:C.t3,marginBottom:8}}>Experience Level</div>
+                    <div style={{display:"flex",gap:6}}>
+                      {(['Junior (0–3 yrs)','Mid (4–8 yrs)','Senior (8+ yrs)'] as const).map(opt=>(
+                        <button key={opt} onClick={()=>setSeniority(opt)} style={{flex:1,padding:"10px 4px",textAlign:"center",background:seniority===opt?C.gold:C.bgi,border:`1px solid ${seniority===opt?C.gold:C.b1}`,borderRadius:8,color:seniority===opt?"#070f1c":C.t2,fontFamily:"Outfit,sans-serif",fontSize:11,fontWeight:seniority===opt?700:500,cursor:"pointer",lineHeight:1.3}}>{opt}</button>
+                      ))}
+                    </div>
+                  </div>
+                </>
+              )}
 
               {/* Savings slider — PRIMARY input for opp, shown directly in form */}
               {dir==="opp"&&<div>
@@ -2078,6 +2130,19 @@ export default function App() {
         </div>
       )}
 
+      {/* FOOTER */}
+      <footer style={{borderTop:`1px solid ${C.b0}`,padding:"20px 24px",textAlign:"center",background:C.bg0,marginTop:40}}>
+        <div style={{fontSize:12,color:C.t3,display:"flex",alignItems:"center",justifyContent:"center",gap:14,flexWrap:"wrap"}}>
+          <span>© 2026 TruePackage</span>
+          <span style={{color:C.b1}}>·</span>
+          <span>Built by Supradeep · India → Germany</span>
+          <span style={{color:C.b1}}>·</span>
+          <button onClick={()=>setSourcesOpen(true)} style={{background:"none",border:"none",cursor:"pointer",fontFamily:"Outfit,sans-serif",fontSize:12,color:C.t3,textDecoration:"underline",padding:0,textUnderlineOffset:3}}>Sources</button>
+          <span style={{color:C.b1}}>·</span>
+          <span>Data: March 2026</span>
+        </div>
+      </footer>
+
       {/* LOADER */}
       {loading&&(
         <div style={{position:"fixed",inset:0,zIndex:300,background:"rgba(6,16,28,.94)",backdropFilter:"blur(10px)",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:18}}>
@@ -2156,6 +2221,42 @@ export default function App() {
                 </button>
               </>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* SOURCES MODAL */}
+      {sourcesOpen&&(
+        <div onClick={e=>e.target===e.currentTarget&&setSourcesOpen(false)} style={{position:"fixed",inset:0,zIndex:400,background:"rgba(0,0,0,0.75)",display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
+          <div style={{background:C.bg1,borderRadius:20,padding:28,maxWidth:520,width:"100%",maxHeight:"90vh",overflowY:"auto"}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:20}}>
+              <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:22,fontWeight:700,color:C.t1}}>About the data</div>
+              <button onClick={()=>setSourcesOpen(false)} style={{background:"none",border:"none",color:C.t3,fontSize:20,cursor:"pointer",marginLeft:16,flexShrink:0}}>✕</button>
+            </div>
+            <p style={{fontSize:13,color:C.t2,lineHeight:1.75,marginBottom:16}}>
+              <strong style={{color:C.t1}}>Salary ranges</strong> sourced from Gehalt.de, Stepstone Gehaltsreport, jobvector Gehaltsanalyse, and ingenieur.de/VDI Gehaltsstudie. German median salary data cross-referenced with Entgeltatlas (Bundesagentur für Arbeit). Ranges represent the 25th–75th percentile of reported salaries for each profession and city.
+            </p>
+            <p style={{fontSize:13,color:C.t2,lineHeight:1.75,marginBottom:24}}>
+              <strong style={{color:C.t1}}>Cost of living</strong> data sourced from Numbeo (city-level, March 2026), supplemented by germany-visa.org and studying-in-germany.org for city comparisons. Indian city costs sourced from 99acres, NoBroker, and QuikrHomes live listings (March 2026).
+            </p>
+            <div style={{fontSize:11,fontWeight:600,letterSpacing:"1.8px",textTransform:"uppercase" as const,color:C.t3,marginBottom:14}}>Primary Sources</div>
+            {[
+              {name:"Entgeltatlas · Bundesagentur für Arbeit",type:"German salary medians (official government data)",url:"https://entgeltatlas.arbeitsagentur.de"},
+              {name:"Gehalt.de",type:"German salary ranges — largest salary database",url:"https://www.gehalt.de"},
+              {name:"Stepstone Gehaltsreport 2025",type:"German salary by profession and region",url:"https://www.stepstone.de/gehalt"},
+              {name:"jobvector Gehaltsanalyse 2025",type:"German salary by profession (engineering focus)",url:"https://www.jobvector.de/gehalt"},
+              {name:"ingenieur.de / VDI Gehaltsstudie",type:"Engineering salaries by field and function",url:"https://www.ingenieur.de/karriere/gehalt"},
+              {name:"Numbeo Germany",type:"City cost of living — crowdsourced, updated continuously",url:"https://www.numbeo.com"},
+            ].map(s=>(
+              <div key={s.name} style={{padding:"12px 0",borderBottom:`1px solid ${C.b0}`,display:"flex",justifyContent:"space-between",alignItems:"center",gap:12}}>
+                <div style={{flex:1,minWidth:0}}>
+                  <div style={{fontSize:13,color:C.t1,marginBottom:2}}>{s.name}</div>
+                  <div style={{fontSize:11,color:C.t3,lineHeight:1.5}}>{s.type}</div>
+                </div>
+                <a href={s.url} target="_blank" rel="noopener noreferrer" style={{fontSize:11,color:C.gold,textDecoration:"none",flexShrink:0,padding:"4px 8px",border:`1px solid ${C.goldL}`,borderRadius:6}}>Visit →</a>
+              </div>
+            ))}
+            <div style={{fontSize:12,color:C.t3,marginTop:20}}>Last updated: March 2026. If you spot an error, use the feedback form.</div>
           </div>
         </div>
       )}

@@ -8,15 +8,18 @@ interface Thr { floor:number;match:number;comfort:number;gm:number;remEur:number
 interface DE { net:number;gross:number;gap:number;tax:number;soli:number;kirche:number;health:number;pension:number;nursing:number;effRate:string; }
 interface IN { net:number;tax:number;pf:number;eff:string; }
 
+// Shared rent ranges for all 12 German cities — used in calcThresholds and calcOpp
+// Sources: Numbeo (March 2026), germany-visa.org, studying-in-germany.org
+const DE_RENT_RANGES:Record<string,Record<string,number[]>>={
+  wg:{Munich:[700,1000],Berlin:[500,700],Frankfurt:[600,900],Hamburg:[550,800],Stuttgart:[520,780],Nuremberg:[380,600],Cologne:[440,680],Dusseldorf:[440,700],Karlsruhe:[420,650],Leipzig:[320,500],Dresden:[330,520],Mannheim:[430,660]},
+  "1br":{Munich:[1200,1700],Berlin:[800,1200],Frankfurt:[1050,1500],Hamburg:[950,1350],Stuttgart:[900,1300],Nuremberg:[650,1000],Cologne:[760,1150],Dusseldorf:[760,1200],Karlsruhe:[900,1350],Leipzig:[650,1000],Dresden:[700,1100],Mannheim:[950,1400]},
+  "2br":{Munich:[1700,2300],Berlin:[1100,1650],Frankfurt:[1450,2050],Hamburg:[1300,1850],Stuttgart:[1250,1750],Nuremberg:[900,1400],Cologne:[1050,1550],Dusseldorf:[1050,1600],Karlsruhe:[1250,1750],Leipzig:[900,1350],Dresden:[950,1450],Mannheim:[1300,1850]},
+};
+
 export function calcThresholds(deCity:string,remINR:number,rate:number,fam:Fam):Thr {
   const dc=CITIES.de[deCity]||CITIES.de.Munich,tc=fam==="single"?1:3;
-  const rentRanges:Record<string,Record<string,number[]>>={
-    wg:{Munich:[700,1000],Berlin:[500,700],Frankfurt:[600,900],Hamburg:[550,800],Stuttgart:[520,780],Nuremberg:[380,600],Cologne:[440,680],Dusseldorf:[440,700]},
-    "1br":{Munich:[1200,1700],Berlin:[800,1200],Frankfurt:[1050,1500],Hamburg:[950,1350],Stuttgart:[900,1300],Nuremberg:[650,1000],Cologne:[760,1150],Dusseldorf:[760,1200]},
-    "2br":{Munich:[1700,2300],Berlin:[1100,1650],Frankfurt:[1450,2050],Hamburg:[1300,1850],Stuttgart:[1250,1750],Nuremberg:[900,1400],Cologne:[1050,1550],Dusseldorf:[1050,1600]},
-  };
   const tier=fam==="single"?"wg":fam==="married"?"1br":"2br";
-  const rr=rentRanges[tier][deCity]||rentRanges[tier].Munich;
+  const rr=DE_RENT_RANGES[tier][deCity]||DE_RENT_RANGES[tier].Munich;
   const rentUsed=Math.round((rr[0]+rr[1])/2);
   const gm=Math.round(rentUsed+(dc.groc[0]+dc.groc[1])/2+dc.trans+(dc.util[0]+dc.util[1])/2);
   const remEur=Math.round(remINR/rate*1.012),matchT=gm+remEur,comfortT=Math.round(matchT*1.2);
@@ -48,9 +51,13 @@ export function calcMatchCTC(deCity:string,inCity:string,fs:number,de_net:number
   const rent=Math.round(rent70*famMult);
   const groc=Math.round(ic.groc[0]+0.7*(ic.groc[1]-ic.groc[0]));
   const help=Math.round(ic.help[0]+0.7*(ic.help[1]-ic.help[0]));
-  const carCosts:Record<string,number>={Mumbai:40000,Bangalore:35000,"Delhi NCR":35000,Hyderabad:30000,Pune:28000,Chennai:28000,Kolkata:22000,Ahmedabad:20000};
+  // Car costs — city-specific. Source: calcMatchCTC research (monthly all-in: EMI+fuel+parking)
+  const carCosts:Record<string,number>={
+    Mumbai:40000,Bangalore:35000,"Delhi NCR":35000,Hyderabad:30000,Pune:28000,Chennai:28000,Kolkata:22000,Ahmedabad:20000,
+    Gurgaon:38000,Noida:30000,Kochi:28000,Indore:20000,Coimbatore:20000,
+  };
   const trans=carCosts[inCity]||28000;
-  const metroCities=["Mumbai","Bangalore","Delhi NCR"];
+  const metroCities=["Mumbai","Bangalore","Delhi NCR","Gurgaon","Noida"];
   const school=fs>2?(metroCities.includes(inCity)?25000:15000):0;
   const health=Math.round((fs<=1?11500:fs<=2?24000:36500)/12);
   const leisure=fs<=1?15000:fs<=2?22000:30000;
@@ -73,12 +80,7 @@ export function calcMatchCTC(deCity:string,inCity:string,fs:number,de_net:number
 
 export function calcOpp(deCity:string,savings:number,fam:string,lifestyle:{apartment:string;cooking:string;car:boolean;gym:string},rate:number) {
   const dc=CITIES.de[deCity]||CITIES.de.Munich;
-  const rentRanges:Record<string,Record<string,number[]>>={
-    wg:{Munich:[700,1000],Berlin:[500,700],Frankfurt:[600,900],Hamburg:[550,800],Stuttgart:[520,780],Nuremberg:[380,600],Cologne:[440,680],Dusseldorf:[440,700]},
-    '1br':{Munich:[1200,1700],Berlin:[800,1200],Frankfurt:[1050,1500],Hamburg:[950,1350],Stuttgart:[900,1300],Nuremberg:[650,1000],Cologne:[760,1150],Dusseldorf:[760,1200]},
-    '2br':{Munich:[1700,2300],Berlin:[1100,1650],Frankfurt:[1450,2050],Hamburg:[1300,1850],Stuttgart:[1250,1750],Nuremberg:[900,1400],Cologne:[1050,1550],Dusseldorf:[1050,1600]}
-  };
-  const rentRange=rentRanges[lifestyle.apartment]?.[deCity]||rentRanges['wg']['Munich'];
+  const rentRange=DE_RENT_RANGES[lifestyle.apartment]?.[deCity]||DE_RENT_RANGES['wg']['Munich'];
   const rentMid=Math.round((rentRange[0]+rentRange[1])/2);
   const grocMid=lifestyle.cooking==='cook'?dc.groc[1]:lifestyle.cooking==='mix'?Math.round((dc.groc[0]+dc.groc[1])/2):dc.groc[0];
   const eatingOut=lifestyle.cooking==='cook'?0:lifestyle.cooking==='mix'?150:350;

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, type ReactNode } from "react";
 import { CITIES } from "./data/cities";
 import { calcDE } from "./calc/calcDE";
 import { calcIN } from "./calc/calcIN";
@@ -265,7 +265,7 @@ function CardD_in({gross,thr,be,deCity,inCity,tc,noKirche,savings,de,remEur,rate
             style={{backgroundImage:`linear-gradient(to right,${C.gold} 0%,${C.gold} ${((activeGross-40000)/(150000-40000)*100).toFixed(1)}%,#111f35 ${((activeGross-40000)/(150000-40000)*100).toFixed(1)}%,#111f35 100%)`,width:"100%",height:4,borderRadius:2,cursor:"pointer",outline:"none",border:"none",WebkitAppearance:"none"}}/>
         </div>
         <div style={{fontSize:14,fontWeight:600,color:whatIfColor,marginBottom:4}}>{whatIfVerdict}</div>
-        <div style={{fontSize:12,color:C.t3}}>Net: €{whatIfNet.toLocaleString()}/mo · Tax: {whatIfDe.effRate}% effective</div>
+        <div style={{fontSize:12,color:C.t3}}>Net: €{whatIfNet.toLocaleString()}/mo · {whatIfDe.effRate}% all-in (tax + social)</div>
         {whatIfGross!==null&&<button onClick={()=>setWhatIfGross(null)} style={{background:"none",border:"none",cursor:"pointer",fontFamily:"Outfit,sans-serif",fontSize:11,color:C.t3,padding:"6px 0 0",display:"block",marginLeft:"auto"}}>Reset to original</button>}
       </div>
 
@@ -494,7 +494,7 @@ function CardA_in({de,india,remEur,dc,ic,ctc,gross,isM,sk3,noKirche}:{de:DE;indi
       </div>
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,margin:"16px 0"}}>
         {[{flag:"🇮🇳",lbl:"India now",rows:[["CTC",`₹${(ctc/1e5).toFixed(0)}L/yr`],["Net/month",`₹${india.net.toLocaleString()}`],["Tax rate",`${india.eff}%`]],hi:false},
-          {flag:"🇩🇪",lbl:"Germany offer",rows:[["Gross",`€${(gross/1000).toFixed(0)}K/yr`],["Net/month",`€${de.net.toLocaleString()}`],["Tax rate",`${de.effRate}%`],["Health ins.","€0 (statutory)"]],hi:true}
+          {flag:"🇩🇪",lbl:"Germany offer",rows:[["Gross",`€${(gross/1000).toFixed(0)}K/yr`],["Net/month",`€${de.net.toLocaleString()}`],["All-in rate",`${de.effRate}%`],["Health ins.","€0 (statutory)"]],hi:true}
         ].map(col=>(
           <div key={col.lbl} style={{background:C.bg1,border:`1px solid ${col.hi?C.goldL:C.b0}`,borderRadius:14,padding:18}}>
             <div style={{fontSize:11,fontWeight:600,letterSpacing:"1.5px",textTransform:"uppercase",color:C.t3,marginBottom:12}}>{col.flag} {col.lbl}</div>
@@ -535,7 +535,7 @@ function CardA_de({de,india,match,ctc,rate,inCity}:{de:DE;india:IN;match:Match;c
         </div>
       </div>
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,margin:"16px 0"}}>
-        {[{lbl:"🇩🇪 Germany now",rows:[["Net/month",`€${de.net.toLocaleString()}`],["Tax rate",`${de.effRate}%`]],hi:true},
+        {[{lbl:"🇩🇪 Germany now",rows:[["Net/month",`€${de.net.toLocaleString()}`],["All-in rate",`${de.effRate}%`]],hi:true},
           {lbl:"🇮🇳 India offer",rows:[["CTC",`₹${(ctc/1e5).toFixed(1)}L/yr`],["Net/month",`₹${india.net.toLocaleString()}`],["EUR equiv",`€${Math.round(india.net/rate).toLocaleString()}`]],hi:false}
         ].map(col=>(
           <div key={col.lbl} style={{background:C.bg1,border:`1px solid ${col.hi?C.goldL:C.b0}`,borderRadius:14,padding:18}}>
@@ -585,16 +585,27 @@ function CardB_in({de,ic,ctc,sk3,rate,noKirche,remEur,fam,dc,deCity,view}:{de:DE
   const epf=Math.round(Math.min(ctc*.4*.12,21600)/12);
   const epfEur=Math.round(epf/rate);
   const spreadCost=remEur>0?Math.round(remEur*0.012/1.012):0;
+  const bankSpread=0.012, wiseSpread=0.005;
+  const monthlySaving=Math.round(remEur*(bankSpread-wiseSpread));
+  const annualSaving=monthlySaving*12;
+  const wiseNote:ReactNode=(
+    <div>
+      <div style={{fontSize:13,color:C.t2}}>Your bank charges ~1.2% FX spread on €{remEur}/mo. Wise charges ~0.5%.</div>
+      <div style={{fontSize:13,color:C.gold,fontWeight:600,marginTop:4}}>That's €{monthlySaving}/mo (€{annualSaving}/yr) saved.</div>
+      <a href="https://wise.com/invite/dic/supradeepc" target="_blank" rel="noopener noreferrer" className="wise-link" style={{display:"block",marginTop:8,fontSize:12,color:C.gold,textDecoration:"none"}}>Get your first transfer free with Wise →</a>
+      <div style={{fontSize:10,color:C.t3,fontStyle:"italic",marginTop:4}}>Referral link — Supradeep uses Wise personally.</div>
+    </div>
+  );
   const isMarried=fam!=="single";
 
-  type RowT={icon:string;lbl:string;val:string;note:string;type:"unavoidable"|"avoidable"|"opportunity";optedOut?:boolean};
+  type RowT={icon:string;lbl:string;val:string;note:ReactNode;type:"unavoidable"|"avoidable"|"opportunity";optedOut?:boolean};
   const rows:RowT[]=[
-    {icon:"🏛",lbl:"Income tax",val:`−€${de.tax.toLocaleString()}/mo`,note:`${de.effRate}% effective. €12,348 tax-free allowance (single). Deducted before you see salary.`,type:"unavoidable"},
+    {icon:"🏛",lbl:"Income tax",val:`−€${de.tax.toLocaleString()}/mo`,note:`€12,348 tax-free allowance (TC1). Income tax only — total all-in rate incl. social contributions is ${de.effRate}%.`,type:"unavoidable"},
     {icon:"🏥",lbl:"Health + nursing",val:`−€${(de.health+de.nursing).toLocaleString()}/mo`,note:"Statutory KV: employer splits 50/50. Nursing care ~2.05% employee-only. Both mandatory.",type:"unavoidable"},
     {icon:"🏦",lbl:"Pension + unemployment",val:`−€${de.pension.toLocaleString()}/mo`,note:"Pension (RV): 9.3% employee. Unemployment (AV): 1.3%. Ceiling €96,600/yr. Employer matches pension.",type:"unavoidable"},
     {icon:"⛪",lbl:"Church tax",val:noKirche?`€0/mo — opted out ✓`:`−€${de.kirche.toLocaleString()}/mo`,type:"avoidable",optedOut:noKirche,note:'Declare "konfessionslos" on your Anmeldung. Saves this immediately. One form, done.'},
     {icon:"🧹",lbl:"Domestic help — gone",val:`−€${helpEur.toLocaleString()}/mo`,note:"Cook + cleaner ₹12–18K/mo in India. In Germany this is a luxury you can't afford.",type:"avoidable"},
-    ...(remEur>0?[{icon:"💸",lbl:"Remittance cost",val:`−€${spreadCost.toLocaleString()}/mo`,note:`1.2% FX spread on your €${remEur.toLocaleString()}/mo remittance. Switch to Wise/Revolut to cut to ~0.5%.`,type:"avoidable" as const}]:[]),
+    ...(remEur>0?[{icon:"💸",lbl:"Remittance cost",val:`−€${spreadCost.toLocaleString()}/mo`,note:wiseNote,type:"avoidable" as const}]:[]),
     {icon:"📦",lbl:"EPF stops",val:`−₹${epf.toLocaleString()}/mo (≈ −€${epfEur}/mo)`,note:"Employer PF (12% of basic) stops. German GRV replaces it but locked until German retirement age.",type:"unavoidable"},
     ...(isMarried?[{icon:"💑",lbl:"Steuerklasse 3",val:`+€${sk3.toLocaleString()}/mo`,note:"You're on Tax Class 3 — this is your monthly saving vs Class 1. Apply once at Finanzamt if not yet switched.",type:"opportunity" as const}]:[]),
   ];
@@ -1347,11 +1358,12 @@ export default function App() {
       setOppResults(null);
       const isM=fam!=="single",tcv=isM?3:1;
       const de=calcDE(gross,tcv,noKirche),india=calcIN(ctc,inCity);
-      const remEur=Math.round(rem/rate*1.012);
+      const remINR=remittanceCurrency==="eur"?Math.round(rem*rate):rem;
+      const remEur=Math.round(remINR/rate*1.012);
       let cardD:React.ReactNode,cardA:React.ReactNode,cardBDed:React.ReactNode,cardBLiv:React.ReactNode,ai:AI,savedThr:Thr|null=null,savedMatch:Match|null=null;
       if(dir==="in2de"){
         const sk3=isM?Math.max(0,calcDE(gross,1).tax-calcDE(gross,3).tax):0;
-        const thr=calcThresholds(deCity,rem,rate,fam),be=calcBreakEven(gross,thr,de,india,rate,deCity,rem,remittanceCurrency,commitments,commitmentsCurrency);
+        const thr=calcThresholds(deCity,remINR,rate,fam,ctc,inCity),be=calcBreakEven(gross,thr,de,india,rate,deCity,rem,remittanceCurrency,commitments,commitmentsCurrency);
         const dc=CITIES.de[deCity]||CITIES.de.Munich,ic=CITIES.in[inCity]||CITIES.in.Bangalore;
         ai=await runAI("in2de",inCity,deCity,gross,ctc,fam,rem,de,india,remEur,null,rate);
         cardD=<CardD_in gross={gross} thr={thr} be={be} deCity={deCity} inCity={inCity} tc={tcv} noKirche={noKirche} savings={savings} de={de} remEur={remEur} rate={rate} dc={dc} fam={fam} field={field} seniority={seniority}/>;
@@ -1723,11 +1735,11 @@ export default function App() {
                 </div>
                 {dir==="in2de"?(
                   <div style={{fontSize:12,color:C.t3,textAlign:"center",marginTop:8}}>
-                    Tax Class {tc} · Effective Tax Rate: <span style={{color:C.gold,fontWeight:600}}>{de_live.effRate}%</span>
+                    Tax Class {tc} · All-in rate (tax + social): <span style={{color:C.gold,fontWeight:600}}>{de_live.effRate}%</span>
                   </div>
                 ):dir==="de2in"?(
                   <div style={{textAlign:"center",marginTop:8}}>
-                    <div style={{fontSize:12,color:C.t2}}>🇩🇪 Germany net: €{liveDeNet}/mo · {liveDeEff}% effective</div>
+                    <div style={{fontSize:12,color:C.t2}}>🇩🇪 Germany net: €{liveDeNet}/mo · {liveDeEff}% all-in</div>
                     <div style={{fontSize:12,color:C.t2,marginTop:4}}>🇮🇳 India take-home: ₹{liveInNet}/mo · {liveInEff}% effective</div>
                   </div>
                 ):null}

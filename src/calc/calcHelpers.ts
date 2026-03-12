@@ -16,13 +16,16 @@ const DE_RENT_RANGES:Record<string,Record<string,number[]>>={
   "2br":{Munich:[1700,2300],Berlin:[1100,1650],Frankfurt:[1450,2050],Hamburg:[1300,1850],Stuttgart:[1250,1750],Nuremberg:[900,1400],Cologne:[1050,1550],Dusseldorf:[1050,1600],Karlsruhe:[1250,1750],Leipzig:[900,1350],Dresden:[950,1450],Mannheim:[1300,1850]},
 };
 
-export function calcThresholds(deCity:string,remINR:number,rate:number,fam:Fam):Thr {
+export function calcThresholds(deCity:string,remINR:number,rate:number,fam:Fam,ctc:number,inCity:string):Thr {
   const dc=CITIES.de[deCity]||CITIES.de.Munich,tc=fam==="single"?1:3;
   const tier=fam==="single"?"wg":fam==="married"?"1br":"2br";
   const rr=DE_RENT_RANGES[tier][deCity]||DE_RENT_RANGES[tier].Munich;
   const rentUsed=Math.round((rr[0]+rr[1])/2);
   const gm=Math.round(rentUsed+(dc.groc[0]+dc.groc[1])/2+dc.trans+(dc.util[0]+dc.util[1])/2);
-  const remEur=Math.round(remINR/rate*1.012),matchT=gm+remEur,comfortT=Math.round(matchT*1.2);
+  const remEur=Math.round(remINR/rate*1.012);
+  const indianNetMonthly=calcIN(ctc,inCity).net;
+  const indianNetEur=Math.round(indianNetMonthly/rate);
+  const matchT=gm+indianNetEur,comfortT=Math.round(matchT*1.2);
   function g4n(t:number){let lo=20000,hi=250000;for(let i=0;i<40;i++){const m=(lo+hi)/2;calcDE(m,tc).net<t?lo=m:hi=m;}return Math.round(lo/1000)*1000;}
   const floor=g4n(gm),match=g4n(matchT),comfort=g4n(comfortT);
   return {floor,match,comfort,gm,remEur,matchT,comfortT,rentUsed,

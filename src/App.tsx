@@ -1903,9 +1903,14 @@ export default function App() {
 
                   {/* ── MORE OPTIONS ── */}
                   <button onClick={()=>setAdvOpen(p=>!p)}
-                    style={{display:"flex",alignItems:"center",gap:6,background:"none",border:"none",color:C.t3,fontFamily:"Outfit,sans-serif",fontSize:12,cursor:"pointer",padding:"0 0 2px",marginBottom:advOpen?16:0}}>
-                    <span style={{display:"inline-block",transform:advOpen?"rotate(90deg)":"rotate(0deg)",transition:"transform .15s",fontSize:10}}>▶</span>
-                    <span>{advOpen?"Hide":"Show"} remittance, commitments &amp; lifestyle</span>
+                    style={{display:"flex",alignItems:"center",justifyContent:"space-between",width:"100%",padding:"11px 14px",borderRadius:8,border:`1px dashed ${advOpen?"rgba(245,158,11,.4)":"rgba(255,255,255,.15)"}`,background:advOpen?"rgba(245,158,11,.05)":"transparent",cursor:"pointer",fontFamily:"Outfit,sans-serif",transition:"all .18s",marginBottom:advOpen?16:0}}
+                    onMouseEnter={e=>{e.currentTarget.style.borderColor="rgba(245,158,11,.5)";e.currentTarget.style.background="rgba(245,158,11,.07)";}}
+                    onMouseLeave={e=>{e.currentTarget.style.borderColor=advOpen?"rgba(245,158,11,.4)":"rgba(255,255,255,.15)";e.currentTarget.style.background=advOpen?"rgba(245,158,11,.05)":"transparent";}}>
+                    <span style={{display:"flex",flexDirection:"column",alignItems:"flex-start",gap:2}}>
+                      <span style={{fontSize:13,fontWeight:600,color:advOpen?C.gold:C.t1}}>Refine your numbers</span>
+                      <span style={{fontSize:11,color:C.t3}}>Remittance · commitments · lifestyle</span>
+                    </span>
+                    <span style={{fontSize:12,color:advOpen?C.gold:C.t3,display:"inline-block",transform:advOpen?"rotate(180deg)":"rotate(0deg)",transition:"transform .18s"}}>▾</span>
                   </button>
 
                   {advOpen&&<div style={{display:"flex",flexDirection:"column",gap:0}}>

@@ -16,12 +16,22 @@ const DE_RENT_RANGES:Record<string,Record<string,number[]>>={
   "2br":{Munich:[1700,2300],Berlin:[1100,1650],Frankfurt:[1450,2050],Hamburg:[1300,1850],Stuttgart:[1250,1750],Nuremberg:[900,1400],Cologne:[1050,1550],Dusseldorf:[1050,1600],Karlsruhe:[1250,1750],Leipzig:[900,1350],Dresden:[950,1450],Mannheim:[1300,1850]},
 };
 
-export function calcThresholds(deCity:string,remINR:number,rate:number,fam:Fam,ctc:number,inCity:string):Thr {
+interface Lifestyle { apartment:string; cooking:string; car:boolean; gym:string; }
+
+export function calcThresholds(deCity:string,remINR:number,rate:number,fam:Fam,ctc:number,inCity:string,lifestyle?:Lifestyle):Thr {
   const dc=CITIES.de[deCity]||CITIES.de.Munich,tc=fam==="single"?1:3;
-  const tier=fam==="single"?"wg":fam==="married"?"1br":"2br";
-  const rr=DE_RENT_RANGES[tier][deCity]||DE_RENT_RANGES[tier].Munich;
+  // Apartment tier: prefer explicit lifestyle choice if provided, else default by family size
+  const tier=lifestyle?.apartment||(fam==="single"?"wg":fam==="married"?"1br":"2br");
+  const rr=DE_RENT_RANGES[tier]?.[deCity]||DE_RENT_RANGES[tier]?.Munich||DE_RENT_RANGES['wg'].Munich;
   const rentUsed=Math.round((rr[0]+rr[1])/2);
-  const gm=Math.round(rentUsed+(dc.groc[0]+dc.groc[1])/2+dc.trans+(dc.util[0]+dc.util[1])/2);
+  // Groceries + eating-out driven by cooking preference
+  const grocBase=lifestyle?.cooking==='cook'?dc.groc[1]:lifestyle?.cooking==='convenience'?dc.groc[0]:Math.round((dc.groc[0]+dc.groc[1])/2);
+  const eatingOut=lifestyle?.cooking==='cook'?0:lifestyle?.cooking==='convenience'?350:150;
+  // Transport: add €400/mo for car ownership
+  const transAmt=lifestyle?.car?(dc.trans+400):dc.trans;
+  // Gym
+  const gymAmt=lifestyle?.gym==='basic'?40:lifestyle?.gym==='premium'?75:0;
+  const gm=Math.round(rentUsed+grocBase+eatingOut+transAmt+(dc.util[0]+dc.util[1])/2+gymAmt+25);
   const remEur=Math.round(remINR/rate*1.012);
   const indianNetMonthly=calcIN(ctc,inCity).net;
   const indianNetEur=Math.round(indianNetMonthly/rate);
@@ -47,7 +57,7 @@ export function calcBreakEven(gross:number,thr:Thr,de:DE,india:IN,rate:number,de
   return {ok:true,surplus,total,dep,mo,yrs,at5,years,msg};
 }
 
-export function calcMatchCTC(deCity:string,inCity:string,fs:number,de_net:number,rate:number) {
+export function calcMatchCTC(deCity:string,inCity:string,fs:number,de_net:number,rate:number,regime:"new"|"old"="new") {
   const ic=CITIES.in[inCity]||CITIES.in.Bangalore;
   const famMult=fs<=1?1.0:fs<=2?1.4:1.7;
   const rent70=Math.round(ic.rent[0]+0.7*(ic.rent[1]-ic.rent[0]));
@@ -68,10 +78,10 @@ export function calcMatchCTC(deCity:string,inCity:string,fs:number,de_net:number
   const tot=rent+groc+help+trans+school+health+leisure+misc;
   const targetNet=Math.round(tot*1.45);
   let lo=targetNet*12,hi=targetNet*36;
-  for(let i=0;i<40;i++){const mid=(lo+hi)/2;calcIN(mid,inCity).net<targetNet?lo=mid:hi=mid;}
+  for(let i=0;i<40;i++){const mid=(lo+hi)/2;calcIN(mid,inCity,regime).net<targetNet?lo=mid:hi=mid;}
   const match=Math.round(lo/100000)*100000;
   const matchLPA=(match/100000).toFixed(1);
-  const india_match=calcIN(match,inCity);
+  const india_match=calcIN(match,inCity,regime);
   const deNetINR=Math.round(de_net*rate);
   const ppGap=Math.round(deNetINR-india_match.net);
   const ppGapPct=Math.round(Math.abs(ppGap)/Math.max(1,deNetINR)*100);

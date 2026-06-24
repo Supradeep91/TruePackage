@@ -23,8 +23,8 @@ interface OppLifestyle { apartment:string; cooking:string; car:boolean; gym:stri
 interface OppResult { monthlyBurn:number;runwayMonths:number;runwayText:string;targetGross:number;legalMin:number;belowLegal:boolean;safeMonths:number;cashPositions:{month:number;hasSalary:boolean;net:number;burn:number;cash:number}[];rentMid:number;rentRange:number[];grocMid:number;eatingOut:number;trans:number;gym:number;utilMid:number;healthFull:number;phone:number;tc:number;rate:number; }
 
 // ─── CONSTANTS ───────────────────────────────────────────────────────────────
-const GEMINI_KEY = import.meta.env.VITE_GEMINI_KEY ?? "";
-const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_KEY}`;
+// API key is injected server-side by Vite's proxy (/api/gemini → Google). Never exposed in the bundle.
+const GEMINI_URL = `/api/gemini`;
 const CALENDLY   = "https://calendly.com/supradeep_cm";
 
 function formatCurrency(num: number, currency: "inr" | "eur"): string {
@@ -1293,6 +1293,8 @@ export default function App() {
   const [advOpen,setAdvOpen]=useState(false);
   const [savings,setSavings]=useState(5000);
   const [oppLifestyle,setOppLifestyle]=useState<OppLifestyle>({apartment:'wg',cooking:'mix',car:false,gym:'none'});
+  const [in2deLifestyle,setIn2deLifestyle]=useState<OppLifestyle>({apartment:'wg',cooking:'mix',car:false,gym:'none'});
+  const [inRegime,setInRegime]=useState<"new"|"old">("new");
   const [field,setField]=useState('Software Engineer / IT');
   const [seniority,setSeniority]=useState('Mid (4–8 yrs)');
   const [sourcesOpen,setSourcesOpen]=useState(false);
@@ -1329,7 +1331,7 @@ export default function App() {
   // de2in live tax preview (computed from current slider values, no calculation logic change)
   const liveDeNet=de_live.net.toLocaleString();
   const liveDeEff=de_live.effRate;
-  const liveIn=calcIN(ctc,inCity);
+  const liveIn=calcIN(ctc,inCity,inRegime);
   const liveInNet=liveIn.net.toLocaleString();
   const liveInEff=liveIn.eff;
   const sk3Preview=Math.max(0,calcDE(gross,1,noKirche).tax-calcDE(gross,3,noKirche).tax);
@@ -1357,13 +1359,13 @@ export default function App() {
       }
       setOppResults(null);
       const isM=fam!=="single",tcv=isM?3:1;
-      const de=calcDE(gross,tcv,noKirche),india=calcIN(ctc,inCity);
+      const de=calcDE(gross,tcv,noKirche),india=calcIN(ctc,inCity,inRegime);
       const remINR=remittanceCurrency==="eur"?Math.round(rem*rate):rem;
       const remEur=Math.round(remINR/rate*1.012);
       let cardD:React.ReactNode,cardA:React.ReactNode,cardBDed:React.ReactNode,cardBLiv:React.ReactNode,ai:AI,savedThr:Thr|null=null,savedMatch:Match|null=null;
       if(dir==="in2de"){
         const sk3=isM?Math.max(0,calcDE(gross,1).tax-calcDE(gross,3).tax):0;
-        const thr=calcThresholds(deCity,remINR,rate,fam,ctc,inCity),be=calcBreakEven(gross,thr,de,india,rate,deCity,rem,remittanceCurrency,commitments,commitmentsCurrency);
+        const thr=calcThresholds(deCity,remINR,rate,fam,ctc,inCity,in2deLifestyle),be=calcBreakEven(gross,thr,de,india,rate,deCity,rem,remittanceCurrency,commitments,commitmentsCurrency);
         const dc=CITIES.de[deCity]||CITIES.de.Munich,ic=CITIES.in[inCity]||CITIES.in.Bangalore;
         ai=await runAI("in2de",inCity,deCity,gross,ctc,fam,rem,de,india,remEur,null,rate);
         cardD=<CardD_in gross={gross} thr={thr} be={be} deCity={deCity} inCity={inCity} tc={tcv} noKirche={noKirche} savings={savings} de={de} remEur={remEur} rate={rate} dc={dc} fam={fam} field={field} seniority={seniority}/>;
@@ -1373,7 +1375,7 @@ export default function App() {
         savedThr=thr;
       }else{
         const fs=fam==="married-kids"?4:fam==="married"?2:1;
-        const match=calcMatchCTC(deCity,inCity,fs,de.net,rate),ic=CITIES.in[inCity]||CITIES.in.Bangalore;
+        const match=calcMatchCTC(deCity,inCity,fs,de.net,rate,inRegime),ic=CITIES.in[inCity]||CITIES.in.Bangalore;
         const dc=CITIES.de[deCity]||CITIES.de.Munich;
         ai=await runAI("de2in",inCity,deCity,gross,ctc,fam,rem,de,india,remEur,match,rate);
         cardD=<CardD_de ctc={ctc} match={match} de={de} india={india} fam={fam} rate={rate} gross={gross} ic={ic} dc={dc} inCity={inCity} deCity={deCity}/>;
@@ -1689,39 +1691,60 @@ export default function App() {
               </div>}
 
               {/* Sliders — hidden for opp direction */}
-              {dir!=="opp"&&[
-                {lbl:dir==="in2de"?"Current Indian CTC":"India CTC Offer",val:ctc,setter:setCtc,min:dir==="in2de"?500000:1500000,max:dir==="in2de"?10000000:30000000,step:500000,fmt:(v:number)=>`₹${(v/1e5).toFixed(0)}L / year`},
-                {lbl:dir==="in2de"?"German Gross Offer":"Current German Gross",val:gross,setter:setGross,min:40000,max:150000,step:5000,fmt:(v:number)=>`€${(v/1000).toFixed(0)}K / year`},
-              ].map(s=>(
-                <div key={s.lbl}>
-                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",fontSize:11,fontWeight:600,letterSpacing:"1.8px",textTransform:"uppercase",color:C.t3,marginBottom:8}}>
-                    <span>{s.lbl}</span>
-                    <input
-                      className="currency-input"
-                      type="text"
-                      value={focusedInput === s.lbl ? tempInputValue : s.fmt(s.val)}
-                      onFocus={() => { setFocusedInput(s.lbl); setTempInputValue(String(s.val)); }}
-                      onBlur={() => {
-                        setFocusedInput(null);
-                        let parsedValue = parseFloat(tempInputValue);
-                        if (isNaN(parsedValue)) parsedValue = s.min; // Default to min if invalid
-                        parsedValue = Math.max(s.min, Math.min(s.max, parsedValue));
-                        (s.setter as any)(parsedValue);
-                      }}
-                      onChange={e => setTempInputValue(e.target.value)}
-                      style={{color:C.gold,fontSize:14,fontWeight:600,letterSpacing:0,textTransform:"none",width:"auto",textAlign:"right"}}
-                    />
+              {dir!=="opp"&&(()=>{
+                const sliders=[
+                  {lbl:dir==="in2de"?"Current Indian CTC":"India CTC Offer",val:ctc,setter:setCtc,min:dir==="in2de"?500000:1500000,max:dir==="in2de"?10000000:30000000,step:500000,fmt:(v:number)=>`₹${(v/1e5).toFixed(0)}L / year`,hint:dir==="in2de"?`≈ €${Math.round(ctc/rate/1000)}K/yr gross equivalent`:`≈ €${Math.round(ctc/rate/1000)}K/yr gross equivalent`},
+                  {lbl:dir==="in2de"?"German Gross Offer":"Current German Gross",val:gross,setter:setGross,min:40000,max:150000,step:5000,fmt:(v:number)=>`€${(v/1000).toFixed(0)}K / year`,hint:`≈ ₹${(gross*rate/1e5).toFixed(1)}L/yr · net ~€${calcDE(gross,fam!=="single"?3:1,false).net.toLocaleString()}/mo`},
+                ];
+                return sliders.map(s=>(
+                  <div key={s.lbl}>
+                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",fontSize:11,fontWeight:600,letterSpacing:"1.8px",textTransform:"uppercase",color:C.t3,marginBottom:8}}>
+                      <span>{s.lbl}</span>
+                      <input
+                        className="currency-input"
+                        type="text"
+                        value={focusedInput === s.lbl ? tempInputValue : s.fmt(s.val)}
+                        onFocus={() => { setFocusedInput(s.lbl); setTempInputValue(String(s.val)); }}
+                        onBlur={() => {
+                          setFocusedInput(null);
+                          let parsedValue = parseFloat(tempInputValue);
+                          if (isNaN(parsedValue)) parsedValue = s.min;
+                          parsedValue = Math.max(s.min, Math.min(s.max, parsedValue));
+                          (s.setter as any)(parsedValue);
+                        }}
+                        onChange={e => setTempInputValue(e.target.value)}
+                        style={{color:C.gold,fontSize:14,fontWeight:600,letterSpacing:0,textTransform:"none",width:"auto",textAlign:"right"}}
+                      />
+                    </div>
+                    <div style={{padding:"0 8px",background:C.bgi,border:`1px solid ${C.b1}`,borderRadius:8}}>
+                      <input type="range" min={s.min} max={s.max} step={s.step} value={s.val} onChange={e=>(s.setter as any)(+e.target.value)} style={{backgroundImage:sliderBg(s.val,s.min,s.max)}}/>
+                    </div>
+                    {rateDate&&<div style={{fontSize:11,color:C.t3,marginTop:4,textAlign:"right"}}>{s.hint}</div>}
                   </div>
-                  <div style={{padding:"0 8px",background:C.bgi,border:`1px solid ${C.b1}`,borderRadius:8}}>
-                    <input type="range" min={s.min} max={s.max} step={s.step} value={s.val} onChange={e=>(s.setter as any)(+e.target.value)} style={{backgroundImage:sliderBg(s.val,s.min,s.max)}}/>
-                  </div>
-                </div>
-              ))}
+                ));
+              })()}
 
               {/* Variable pay warning — de2in only */}
               {dir==="de2in"&&(
                 <div style={{fontSize:11,fontStyle:"italic",color:C.t3,marginTop:-8}}>
                   ₹{((ctc*0.7)/1e5).toFixed(1)}L likely fixed (70% of CTC). Variable pay is conditional and may not be paid.
+                </div>
+              )}
+
+              {/* India tax regime toggle — shown whenever India CTC is relevant */}
+              {dir!=="opp"&&(
+                <div>
+                  <div style={{fontSize:11,fontWeight:600,letterSpacing:"1.8px",textTransform:"uppercase",color:C.t3,marginBottom:8}}>India Tax Regime</div>
+                  <div style={{display:"flex",gap:6}}>
+                    {([["new","New Regime (FY26)"],["old","Old Regime"]] as ["new"|"old",string][]).map(([v,l])=>(
+                      <button key={v} onClick={()=>setInRegime(v)} style={{flex:1,padding:"10px 8px",textAlign:"center",background:inRegime===v?C.gold:C.bgi,border:`1px solid ${inRegime===v?C.gold:C.b1}`,borderRadius:8,color:inRegime===v?"#070f1c":C.t2,fontFamily:"Outfit,sans-serif",fontSize:12,fontWeight:inRegime===v?700:500,cursor:"pointer"}}>{l}</button>
+                    ))}
+                  </div>
+                  <div style={{fontSize:11,color:C.t3,marginTop:5}}>
+                    {inRegime==="old"
+                      ?"Old regime: ₹50K std deduction + 80C PF deduction. Better if you have HRA exemptions."
+                      :"New regime: ₹75K std deduction, zero-tax ≤ ₹12L. No 80C/HRA deductions."}
+                  </div>
                 </div>
               )}
 
@@ -1850,6 +1873,49 @@ export default function App() {
                   <input type="range" min={0} max={50000} step={1000} value={savings} onChange={e=>setSavings(+e.target.value)} style={{backgroundImage:sliderBg(savings,0,50000)}}/>
                 </div>
                 <div style={{fontSize:11,color:C.t3,marginTop:4}}>Cash available before first salary lands</div>
+              </div>}
+
+              {/* Lifestyle customiser — in2de (affects thresholds) */}
+              {dir==="in2de"&&<div style={{background:C.bgi,border:`1px solid ${C.b1}`,borderRadius:10,padding:16}}>
+                <div style={{fontSize:11,fontWeight:600,letterSpacing:"1.8px",textTransform:"uppercase",color:C.t3,marginBottom:4}}>Your Germany Lifestyle</div>
+                <div style={{fontSize:12,color:C.t3,marginBottom:12}}>Adjusts your Floor / Parity / Comfort thresholds.</div>
+                {/* Apartment */}
+                <div style={{marginBottom:12}}>
+                  <div style={{fontSize:11,color:C.t3,marginBottom:6}}>Apartment</div>
+                  <div style={{display:"flex",gap:6}}>
+                    {([["wg","Shared (WG)"],["1br","1 Bedroom"],["2br","2 Bedroom"]] as [string,string][]).map(([v,l])=>(
+                      <button key={v} onClick={()=>setIn2deLifestyle(p=>({...p,apartment:v}))} style={{flex:1,padding:"8px 4px",textAlign:"center",background:in2deLifestyle.apartment===v?C.gold:C.bg2,border:`1px solid ${in2deLifestyle.apartment===v?C.gold:C.b1}`,borderRadius:6,color:in2deLifestyle.apartment===v?"#070f1c":C.t2,fontFamily:"Outfit,sans-serif",fontSize:11,fontWeight:in2deLifestyle.apartment===v?700:500,cursor:"pointer"}}>{l}</button>
+                    ))}
+                  </div>
+                </div>
+                {/* Cooking */}
+                <div style={{marginBottom:12}}>
+                  <div style={{fontSize:11,color:C.t3,marginBottom:6}}>Eating</div>
+                  <div style={{display:"flex",gap:6}}>
+                    {([["cook","Cook at home"],["mix","Mix"],["convenience","Eat out often"]] as [string,string][]).map(([v,l])=>(
+                      <button key={v} onClick={()=>setIn2deLifestyle(p=>({...p,cooking:v}))} style={{flex:1,padding:"8px 4px",textAlign:"center",background:in2deLifestyle.cooking===v?C.gold:C.bg2,border:`1px solid ${in2deLifestyle.cooking===v?C.gold:C.b1}`,borderRadius:6,color:in2deLifestyle.cooking===v?"#070f1c":C.t2,fontFamily:"Outfit,sans-serif",fontSize:11,fontWeight:in2deLifestyle.cooking===v?700:500,cursor:"pointer"}}>{l}</button>
+                    ))}
+                  </div>
+                </div>
+                {/* Car + Gym */}
+                <div style={{display:"flex",gap:10}}>
+                  <div style={{flex:1}}>
+                    <div style={{fontSize:11,color:C.t3,marginBottom:6}}>Car</div>
+                    <div style={{display:"flex",gap:6}}>
+                      {([["false","No car"],["true","Own car"]] as [string,string][]).map(([v,l])=>(
+                        <button key={v} onClick={()=>setIn2deLifestyle(p=>({...p,car:v==="true"}))} style={{flex:1,padding:"8px 4px",textAlign:"center",background:(in2deLifestyle.car?"true":"false")===v?C.gold:C.bg2,border:`1px solid ${(in2deLifestyle.car?"true":"false")===v?C.gold:C.b1}`,borderRadius:6,color:(in2deLifestyle.car?"true":"false")===v?"#070f1c":C.t2,fontFamily:"Outfit,sans-serif",fontSize:11,fontWeight:(in2deLifestyle.car?"true":"false")===v?700:500,cursor:"pointer"}}>{l}</button>
+                      ))}
+                    </div>
+                  </div>
+                  <div style={{flex:1}}>
+                    <div style={{fontSize:11,color:C.t3,marginBottom:6}}>Gym</div>
+                    <div style={{display:"flex",gap:6}}>
+                      {([["none","None"],["basic","Basic"],["premium","Premium"]] as [string,string][]).map(([v,l])=>(
+                        <button key={v} onClick={()=>setIn2deLifestyle(p=>({...p,gym:v}))} style={{flex:1,padding:"8px 4px",textAlign:"center",background:in2deLifestyle.gym===v?C.gold:C.bg2,border:`1px solid ${in2deLifestyle.gym===v?C.gold:C.b1}`,borderRadius:6,color:in2deLifestyle.gym===v?"#070f1c":C.t2,fontFamily:"Outfit,sans-serif",fontSize:11,fontWeight:in2deLifestyle.gym===v?700:500,cursor:"pointer"}}>{l}</button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
               </div>}
 
               {/* Lifestyle customiser — opp only */}

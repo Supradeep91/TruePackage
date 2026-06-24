@@ -43,12 +43,14 @@ function formatCurrency(num: number, currency: "inr" | "eur"): string {
 }
 
 const C = {
-  bg0:"#06101c",bg1:"#0d1829",bg2:"#111f35",bgi:"#090f1e",
-  gold:"#e8a020",goldD:"rgba(232,160,32,.12)",goldL:"rgba(232,160,32,.28)",
-  grn:"#00c98b",grnD:"rgba(0,201,139,.08)",grnL:"rgba(0,201,139,.25)",
-  red:"#ff5b5b",redD:"rgba(255,91,91,.08)",
-  t1:"#edf2f7",t2:"#8a9bb8",t3:"#4a6080",
-  b0:"rgba(255,255,255,.05)",b1:"rgba(255,255,255,.09)",
+  bg0:"#080c14",bg1:"#0f1624",bg2:"#141e30",bgi:"#0b1020",
+  gold:"#f59e0b",goldD:"rgba(245,158,11,.13)",goldL:"rgba(245,158,11,.32)",
+  grn:"#10d98c",grnD:"rgba(16,217,140,.08)",grnL:"rgba(16,217,140,.28)",
+  red:"#f55b5b",redD:"rgba(245,91,91,.08)",
+  t1:"#f0f4fa",t2:"#8fa3c0",t3:"#4e637e",
+  b0:"rgba(255,255,255,.05)",b1:"rgba(255,255,255,.1)",
+  // accent border colors per card
+  accentBlue:"rgba(99,179,237,.6)",accentAmber:"rgba(245,158,11,.6)",accentGreen:"rgba(16,217,140,.5)",
 };
 
 // ─── CALC ENGINE ─────────────────────────────────────────────────────────────
@@ -1546,369 +1548,444 @@ export default function App() {
         input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;height:20px;border-radius:50%;background:${C.gold};cursor:pointer;box-shadow:0 0 0 4px ${C.goldD},0 2px 6px rgba(0,0,0,.4)}
         @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
         @keyframes spin{to{transform:rotate(360deg)}}
-        @media(max-width:720px){.hero-grid{grid-template-columns:1fr!important}.dual-grid{grid-template-columns:1fr!important}}
+        @keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+        .jcard{transition:border-color .15s,background .15s,box-shadow .15s;cursor:pointer}
+        .jcard:hover{border-color:rgba(255,255,255,0.2)!important}
+        .ul-input{background:none;border:none;border-bottom:1px solid rgba(255,255,255,0.12);border-radius:0;outline:none;width:100%;font-family:'Outfit',sans-serif;color:#f0f4fa;padding:10px 0 8px;font-size:15px;font-weight:600;transition:border-color .15s}
+        .ul-input:focus{border-bottom-color:#f59e0b}
+        .ul-select{background:none;border:none;border-bottom:1px solid rgba(255,255,255,0.12);border-radius:0;outline:none;width:100%;font-family:'Outfit',sans-serif;color:#f0f4fa;padding:10px 0 8px;font-size:15px;cursor:pointer;transition:border-color .15s;appearance:none}
+        .ul-select:focus{border-bottom-color:#f59e0b}
+        .pill-sm{flex:1;padding:8px 4px;text-align:center;border-radius:6px;font-family:'Outfit',sans-serif;font-size:12px;cursor:pointer;transition:all .15s;white-space:nowrap;border:1px solid transparent}
+        @media(max-width:860px){.main-grid{grid-template-columns:1fr!important;gap:32px!important}}
+        @media(max-width:600px){.jband-grid{grid-template-columns:1fr!important}}
       `}</style>
 
       {/* NAV */}
-      <nav style={{position:"fixed",top:0,left:0,right:0,zIndex:100,height:54,padding:"0 24px",display:"flex",alignItems:"center",justifyContent:"space-between",background:"rgba(6,16,28,.9)",backdropFilter:"blur(16px)",borderBottom:`1px solid ${C.b0}`}}>
-        <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:22,fontWeight:700,color:C.gold}}>TruePackage</div>
-        <div style={{display:"flex",alignItems:"center",gap:7,fontSize:12,color:C.t2}}>
+      <nav style={{position:"fixed",top:0,left:0,right:0,zIndex:100,height:52,padding:"0 28px",display:"flex",alignItems:"center",justifyContent:"space-between",background:"rgba(8,12,20,.92)",backdropFilter:"blur(20px)",borderBottom:`1px solid ${C.b0}`}}>
+        <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:22,fontWeight:700,color:C.gold,letterSpacing:".5px"}}>TruePackage</div>
+        <div style={{display:"flex",alignItems:"center",gap:6,fontSize:12,color:C.t3}}>
           <div style={{width:6,height:6,borderRadius:"50%",background:C.grn,boxShadow:`0 0 8px ${C.grn}`,animation:"pulse 2.5s ease-in-out infinite"}}/>
-          <span style={{color:rateDate?C.grn:C.t2}}>{rateDate?`EUR/INR ₹${rate.toFixed(2)} · ${rateDate}`:"Loading rate…"}</span>
+          <span>{rateDate?`₹${rate.toFixed(2)} / € · ${rateDate}`:"Fetching live rate…"}</span>
         </div>
       </nav>
 
-      {/* HERO */}
-      <section style={{minHeight:"100vh",padding:"80px 0 60px"}}>
-        <div className="hero-grid" style={{maxWidth:1100,margin:"0 auto",padding:"0 24px",display:"grid",gridTemplateColumns:"1fr 1fr",gap:64,alignItems:"start"}}>
-
-          {/* LEFT */}
-          <div>
-            {/* Direction toggle */}
-            <div style={{display:"flex",gap:8,marginBottom:32}}>
-              {([["in2de","🇮🇳 → 🇩🇪","To Germany"],["de2in","🇩🇪 → 🇮🇳","Back to India"],["opp","🇮🇳 → 🇩🇪","Opportunity Card"]] as [Dir,string,string][]).map(([d,flag,sub])=>(
-                <button key={d} onClick={()=>{setDir(d);setResults(null);setOppResults(null);}} style={{flex:1,padding:"12px 8px",borderRadius:8,border:`1px solid ${dir===d?C.gold:"rgba(255,255,255,0.25)"}`,background:dir===d?C.gold:C.bgi,color:dir===d?"#070f1c":C.t1,fontFamily:"Outfit,sans-serif",fontSize:13,fontWeight:dir===d?700:600,cursor:"pointer",textAlign:"center",lineHeight:1.5}}>
-                  {flag}<br/><span style={{fontSize:11,opacity:.75,fontWeight:500}}>{sub}</span>
+      {/* JOURNEY BAND — full-bleed, sits just below nav */}
+      <div style={{position:"fixed",top:52,left:0,right:0,zIndex:99,background:"rgba(8,12,20,.96)",backdropFilter:"blur(20px)",borderBottom:`1px solid ${C.b0}`,padding:"12px 28px"}}>
+        <div style={{maxWidth:1060,margin:"0 auto"}}>
+          <p style={{fontSize:10,fontWeight:700,letterSpacing:"2.5px",textTransform:"uppercase",color:C.t3,marginBottom:8}}>Where are you in your journey?</p>
+          <div className="jband-grid" style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8}}>
+            {([
+              {d:"in2de" as Dir, flag:"🇮🇳→🇩🇪", title:"Moving to Germany",   sub:"Have a German offer — is it real money?",      rgb:"99,179,237"},
+              {d:"de2in" as Dir, flag:"🇩🇪→🇮🇳", title:"Returning to India",   sub:"Evaluate an India CTC from Germany",            rgb:"245,158,11"},
+              {d:"opp"   as Dir, flag:"📋",        title:"Opportunity Card",     sub:"Moving without a job — how long do savings last?", rgb:"16,217,140"},
+            ]).map(item=>{
+              const on=dir===item.d;
+              return (
+                <button key={item.d} className="jcard" onClick={()=>{setDir(item.d);setResults(null);setOppResults(null);}}
+                  style={{display:"flex",alignItems:"center",gap:10,padding:"9px 14px",borderRadius:8,border:`1px solid ${on?`rgba(${item.rgb},.55)`:"rgba(255,255,255,0.07)"}`,background:on?`rgba(${item.rgb},.07)`:"transparent",fontFamily:"Outfit,sans-serif",textAlign:"left",boxShadow:on?`0 0 18px rgba(${item.rgb},.1)`:"none"}}>
+                  <span style={{fontSize:18,flexShrink:0}}>{item.flag}</span>
+                  <span style={{display:"flex",flexDirection:"column",gap:1}}>
+                    <span style={{fontSize:13,fontWeight:700,color:on?C.t1:C.t2,lineHeight:1.2}}>{item.title}</span>
+                    <span style={{fontSize:11,color:C.t3,lineHeight:1.3}}>{item.sub}</span>
+                  </span>
                 </button>
-              ))}
-            </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
 
-            <div style={{display:"inline-flex",alignItems:"center",background:C.goldD,border:`1px solid ${C.goldL}`,borderRadius:20,padding:"7px 18px",fontSize:14,fontWeight:700,letterSpacing:"1.5px",textTransform:"uppercase",color:C.gold,marginBottom:16}}>
-              {dir==="in2de"?"🇮🇳 India → 🇩🇪 Germany":dir==="de2in"?"🇩🇪 Germany → 🇮🇳 India":"🇮🇳 Opportunity Card → 🇩🇪 Germany"}
-            </div>
-            <h1 style={{fontFamily:"'Cormorant Garamond',serif",fontSize:"clamp(30px,4vw,52px)",fontWeight:700,lineHeight:1.1,color:C.t1,marginBottom:8}}>
-              {dir==="in2de"?"Your offer looks great.\nUntil tax hits.":dir==="de2in"?"That CTC looks great.\nUntil you break it down.":"How long can you last.\nAnd what offer do you need."}
+      {/* HERO — pushed down past nav + band */}
+      <section style={{minHeight:"100vh",paddingTop:168,paddingBottom:80}}>
+        <div className="main-grid" style={{maxWidth:1060,margin:"0 auto",padding:"0 28px",display:"grid",gridTemplateColumns:"1fr 380px",gap:72,alignItems:"start"}}>
+
+          {/* ── LEFT: narrative + live output ── */}
+          <div>
+            {/* Glow blob */}
+            <div style={{position:"absolute",width:400,height:300,borderRadius:"50%",background:dir==="in2de"?"radial-gradient(ellipse,rgba(99,179,237,.06) 0%,transparent 70%)":dir==="de2in"?"radial-gradient(ellipse,rgba(245,158,11,.06) 0%,transparent 70%)":"radial-gradient(ellipse,rgba(16,217,140,.06) 0%,transparent 70%)",pointerEvents:"none",transform:"translate(-80px,-60px)"}}/>
+
+            <h1 style={{fontFamily:"'Cormorant Garamond',serif",fontSize:"clamp(34px,4vw,58px)",fontWeight:700,lineHeight:1.08,color:C.t1,marginBottom:12,position:"relative"}}>
+              {dir==="in2de"
+                ? <>"Your offer looks great.<br/><span style={{color:C.gold}}>Until tax hits.</span>"</>
+                : dir==="de2in"
+                ? <>"That CTC looks great.<br/><span style={{color:C.gold}}>Until you break it down.</span>"</>
+                : <>"How long can you last?<br/><span style={{color:C.gold}}>And what offer do you need.</span>"</>
+              }
             </h1>
-            <p style={{fontSize:15,color:C.t2,lineHeight:1.7,marginBottom:28,maxWidth:400}}>
-              {dir==="in2de"?"Move the slider — see your real first payslip instantly.":dir==="de2in"?"See the CTC you need to match your Germany life.":"Enter your savings — see your runway and the minimum offer to accept."}
+            <p style={{fontSize:16,color:C.t2,lineHeight:1.75,marginBottom:36,maxWidth:460}}>
+              {dir==="in2de"
+                ? "Germans typically keep only 52–57% of their gross salary. Move the slider and watch your real first payslip appear — tax, health, pension and all."
+                : dir==="de2in"
+                ? "Indian CTC is a marketing number. Tax, PF, and variable pay mean your take-home is often 40–55% of the headline. See the CTC you actually need to match your Germany lifestyle."
+                : "The Opportunity Card lets you move to Germany without a job. Enter your savings and see exactly how many months you have — and the minimum salary you need to accept when offers come in."}
             </p>
+
+            {/* ── LIVE NARRATIVE SENTENCE ── */}
+            {dir!=="opp"&&(()=>{
+              const net=de_live.net, gross=de_live.gross, effN=Math.round(net/gross*100);
+              const inNet=liveIn.net;
+              const gapEur=net-Math.round(inNet/rate);
+              const gapSign=gapEur>=0?"+":"";
+              const narrative = dir==="in2de"
+                ? `Your €${(gross/1000).toFixed(0)}K offer in ${deCity} nets you €${net.toLocaleString()}/mo — that's ${effN}% of gross. You're ${gapEur>=0?"€"+gapEur.toLocaleString()+" ahead of":"€"+Math.abs(gapEur).toLocaleString()+" short of"} parity with ${inCity}.`
+                : `Your €${(gross/1000).toFixed(0)}K German gross nets €${net.toLocaleString()}/mo. The India offer of ₹${(ctc/1e5).toFixed(0)}L nets ₹${inNet.toLocaleString()}/mo (≈ €${Math.round(inNet/rate).toLocaleString()}/mo). ${gapSign}€${Math.abs(gapEur).toLocaleString()}/mo difference.`;
+              return (
+                <div style={{borderLeft:`3px solid ${dir==="in2de"?"rgba(99,179,237,.5)":"rgba(245,158,11,.5)"}`,paddingLeft:16,marginBottom:32}}>
+                  <p style={{fontSize:15,color:C.t1,lineHeight:1.65,fontWeight:500}}>{narrative}</p>
+                  <p style={{fontSize:12,color:C.t3,marginTop:6}}>Updates live as you move the sliders →</p>
+                </div>
+              );
+            })()}
+            {dir==="opp"&&(()=>{
+              const oppBurn=Math.round((1200+400+200+400+50));
+              return (
+                <div style={{borderLeft:"3px solid rgba(16,217,140,.5)",paddingLeft:16,marginBottom:32}}>
+                  <p style={{fontSize:15,color:C.t1,lineHeight:1.65,fontWeight:500}}>
+                    A single person in {deCity} typically spends €{oppBurn.toLocaleString()}–€{(oppBurn+400).toLocaleString()}/mo on the basics. Enter your savings and lifestyle to see your exact runway.
+                  </p>
+                </div>
+              );
+            })()}
 
             {/* Live preview — tax waterfall */}
             {dir!=="opp"&&(()=>{
               const gross=de_live.gross,net=de_live.net,tax=de_live.tax,hn=de_live.health+de_live.nursing,pen=de_live.pension,soli=de_live.soli,kirche=de_live.kirche;
-              const netPct=net/gross*100,taxPct=tax/gross*100,hnPct=hn/gross*100,penPct=pen/gross*100,soliPct=Math.max(0,(soli+(noKirche?0:kirche))/gross*100);
-              // mini bar helper
+              const netPct=net/gross*100,taxPct=tax/gross*100,hnPct=hn/gross*100,penPct=pen/gross*100;
               const miniBar=(val:number,color:string)=>(
-                <div style={{flex:1,height:4,background:C.bg1,borderRadius:2,overflow:"hidden",marginLeft:8}}>
+                <div style={{flex:1,height:3,background:"rgba(255,255,255,.04)",borderRadius:2,overflow:"hidden",marginLeft:8}}>
                   <div style={{height:"100%",background:color,borderRadius:2,width:`${Math.min(100,val/gross*100*3)}%`,transition:"width .4s"}}/>
                 </div>
               );
               return (
-                <div style={{background:C.bg2,border:`1px solid ${C.b1}`,borderRadius:14,padding:"20px 22px",marginBottom:20}}>
-                  {/* Header */}
-                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
-                    <span style={{fontSize:10,fontWeight:700,letterSpacing:"2px",textTransform:"uppercase",color:C.t3}}>Live payslip</span>
-                    <span style={{display:"flex",alignItems:"center",gap:5,fontSize:10,color:C.grn}}><span style={{width:5,height:5,borderRadius:"50%",background:C.grn,display:"inline-block",animation:"pulse 2.5s ease-in-out infinite"}}/>live</span>
-                  </div>
-
-                  {/* Hero take-home */}
-                  <div style={{marginBottom:16}}>
-                    <div style={{fontSize:10,fontWeight:600,letterSpacing:"1.5px",textTransform:"uppercase",color:C.t3,marginBottom:4}}>You take home</div>
-                    <div style={{display:"flex",alignItems:"baseline",gap:6}}>
-                      <span style={{fontFamily:"'Cormorant Garamond',serif",fontSize:44,fontWeight:700,color:C.gold,lineHeight:1}}>€{net.toLocaleString()}</span>
-                      <span style={{fontSize:14,color:C.t2,fontWeight:500}}>/month</span>
+                <div style={{marginBottom:28}}>
+                  {/* Hero take-home — no box, just text */}
+                  <div style={{marginBottom:20}}>
+                    <div style={{fontSize:11,fontWeight:700,letterSpacing:"2px",textTransform:"uppercase",color:C.t3,marginBottom:6,display:"flex",alignItems:"center",gap:8}}>
+                      You take home
+                      <span style={{display:"flex",alignItems:"center",gap:4,fontSize:10,color:C.grn,fontWeight:600}}>
+                        <span style={{width:5,height:5,borderRadius:"50%",background:C.grn,display:"inline-block",animation:"pulse 2.5s ease-in-out infinite"}}/>live
+                      </span>
                     </div>
-                    <div style={{fontSize:12,color:C.t3,marginTop:3}}>from €{gross.toLocaleString()} gross · EUR/INR ₹{Math.round(rate)}</div>
+                    <div style={{display:"flex",alignItems:"baseline",gap:8,marginBottom:4}}>
+                      <span style={{fontFamily:"'Cormorant Garamond',serif",fontSize:64,fontWeight:700,color:C.gold,lineHeight:1}}>€{net.toLocaleString()}</span>
+                      <span style={{fontSize:16,color:C.t3,fontWeight:500}}>/month</span>
+                    </div>
+                    <div style={{fontSize:13,color:C.t3}}>from <span style={{color:C.t2}}>€{gross.toLocaleString()}</span> gross · only <span style={{color:C.gold,fontWeight:600}}>{netPct.toFixed(0)}%</span> reaches your account</div>
                   </div>
 
-                  {/* Waterfall bar */}
-                  <div style={{display:"flex",height:10,borderRadius:6,overflow:"hidden",marginBottom:10,gap:1}}>
+                  {/* Waterfall bar — wider, taller */}
+                  <div style={{display:"flex",height:14,borderRadius:7,overflow:"hidden",marginBottom:14,gap:2}}>
                     <div style={{width:`${netPct}%`,background:C.gold,transition:"width .4s"}} title={`Net ${netPct.toFixed(0)}%`}/>
                     <div style={{width:`${taxPct}%`,background:C.red,transition:"width .4s"}} title={`Tax ${taxPct.toFixed(0)}%`}/>
-                    <div style={{width:`${hnPct}%`,background:"rgba(255,91,91,.45)",transition:"width .4s"}} title={`Health+nursing ${hnPct.toFixed(0)}%`}/>
+                    <div style={{width:`${hnPct}%`,background:"rgba(245,91,91,.5)",transition:"width .4s"}} title={`Health+nursing ${hnPct.toFixed(0)}%`}/>
                     <div style={{width:`${penPct}%`,background:"rgba(138,155,184,.4)",transition:"width .4s"}} title={`Pension ${penPct.toFixed(0)}%`}/>
-                    <div style={{flex:1,background:"rgba(138,155,184,.15)"}}/>
+                    <div style={{flex:1,background:"rgba(255,255,255,.04)"}}/>
                   </div>
-                  {/* Bar legend */}
-                  <div style={{display:"flex",gap:12,marginBottom:16,fontSize:10,color:C.t3,flexWrap:"wrap"}}>
-                    <span><span style={{display:"inline-block",width:8,height:8,borderRadius:2,background:C.gold,marginRight:4}}/>Net {netPct.toFixed(0)}%</span>
-                    <span><span style={{display:"inline-block",width:8,height:8,borderRadius:2,background:C.red,marginRight:4}}/>Tax {taxPct.toFixed(0)}%</span>
-                    <span><span style={{display:"inline-block",width:8,height:8,borderRadius:2,background:"rgba(255,91,91,.45)",marginRight:4}}/>Health {hnPct.toFixed(0)}%</span>
-                    <span><span style={{display:"inline-block",width:8,height:8,borderRadius:2,background:"rgba(138,155,184,.4)",marginRight:4}}/>Pension {penPct.toFixed(0)}%</span>
+                  {/* Legend */}
+                  <div style={{display:"flex",gap:14,marginBottom:20,fontSize:11,color:C.t3,flexWrap:"wrap" as const}}>
+                    {[{c:C.gold,l:`Net ${netPct.toFixed(0)}%`},{c:C.red,l:`Tax ${taxPct.toFixed(0)}%`},{c:"rgba(245,91,91,.5)",l:`Health ${hnPct.toFixed(0)}%`},{c:"rgba(138,155,184,.4)",l:`Pension ${penPct.toFixed(0)}%`}].map(x=>(
+                      <span key={x.l} style={{display:"flex",alignItems:"center",gap:4}}><span style={{width:8,height:8,borderRadius:2,background:x.c,display:"inline-block"}}/>{x.l}</span>
+                    ))}
                   </div>
 
-                  {/* Itemised deductions */}
-                  <div style={{display:"flex",flexDirection:"column",gap:7,paddingBottom:14,borderBottom:`1px solid ${C.b0}`}}>
+                  {/* Itemised deductions — flush, no box */}
+                  <div style={{display:"flex",flexDirection:"column",gap:10,paddingBottom:16,borderBottom:`1px solid rgba(255,255,255,.06)`}}>
                     {[
-                      {lbl:"Income tax",val:tax,color:C.red},
-                      {lbl:"Health + nursing",val:hn,color:"rgba(255,91,91,.6)"},
-                      {lbl:"Pension + AV",val:pen,color:"rgba(138,155,184,.6)"},
+                      {lbl:"Income tax",sub:"Lohnsteuer · progressive from 14%",val:tax,color:C.red},
+                      {lbl:"Health + nursing",sub:"Kranken- & Pflegeversicherung",val:hn,color:"rgba(245,91,91,.6)"},
+                      {lbl:"Pension + AV",sub:"Renten- & Arbeitslosenversicherung",val:pen,color:"rgba(138,155,184,.6)"},
                     ].map(r=>(
-                      <div key={r.lbl} style={{display:"flex",alignItems:"center",gap:6}}>
-                        <span style={{fontSize:12,color:C.t3,minWidth:110}}>{r.lbl}</span>
-                        <span style={{fontSize:12,fontWeight:600,color:C.t2,minWidth:64,textAlign:"right"}}>−€{r.val.toLocaleString()}</span>
-                        {miniBar(r.val,r.color)}
-                        <span style={{fontSize:10,color:C.t3,minWidth:28,textAlign:"right"}}>{(r.val/gross*100).toFixed(0)}%</span>
+                      <div key={r.lbl}>
+                        <div style={{display:"flex",alignItems:"baseline",justifyContent:"space-between",marginBottom:2}}>
+                          <span style={{fontSize:13,color:C.t2,fontWeight:500}}>{r.lbl}</span>
+                          <span style={{fontSize:14,fontWeight:700,color:C.t1}}>−€{r.val.toLocaleString()}</span>
+                        </div>
+                        <div style={{display:"flex",alignItems:"center",gap:8}}>
+                          <span style={{fontSize:11,color:C.t3,flex:1}}>{r.sub}</span>
+                          {miniBar(r.val,r.color)}
+                          <span style={{fontSize:11,color:C.t3,minWidth:26,textAlign:"right"}}>{(r.val/gross*100).toFixed(0)}%</span>
+                        </div>
                       </div>
                     ))}
                   </div>
 
-                  {/* Gap summary */}
-                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",paddingTop:12,marginBottom:results?12:0}}>
-                    <span style={{fontSize:12,color:C.t3}}>Monthly gap from gross</span>
-                    <span style={{fontSize:14,fontWeight:700,color:C.red}}>−€{de_live.gap.toLocaleString()}/mo</span>
+                  {/* Gap + extras */}
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",paddingTop:14,marginBottom:results?10:0}}>
+                    <div>
+                      <div style={{fontSize:13,color:C.t3}}>Monthly gap from gross</div>
+                      <div style={{fontSize:11,color:C.t3,marginTop:1}}>Deductions that won't appear in your bank</div>
+                    </div>
+                    <span style={{fontSize:16,fontWeight:700,color:C.red}}>−€{de_live.gap.toLocaleString()}</span>
                   </div>
 
-                  {/* After-calc rows or teaser */}
                   {results
-                    ? <div style={{display:"flex",flexDirection:"column",gap:6}}>
-                        <div style={{display:"flex",justifyContent:"space-between",fontSize:12}}>
+                    ? <div style={{display:"flex",flexDirection:"column",gap:8,marginTop:4}}>
+                        <div style={{display:"flex",justifyContent:"space-between",fontSize:13}}>
                           <span style={{color:C.t3}}>⛪ Church tax {noKirche?"(opted out)":"(avoidable)"}</span>
                           <span style={{fontWeight:600,color:noKirche?C.grn:C.gold}}>{noKirche?`+€${kirche.toLocaleString()}/mo saved`:`−€${kirche.toLocaleString()}/mo`}</span>
                         </div>
-                        <div style={{display:"flex",justifyContent:"space-between",fontSize:12}}>
+                        <div style={{display:"flex",justifyContent:"space-between",fontSize:13}}>
                           <span style={{color:C.t3}}>🧹 Domestic help delta</span>
                           <span style={{fontWeight:600,color:C.t2}}>−€{helpPreview}/mo equiv</span>
                         </div>
-                        <div style={{display:"flex",justifyContent:"space-between",fontSize:12,filter:"blur(3px)",userSelect:"none"}}>
+                        <div style={{display:"flex",justifyContent:"space-between",fontSize:13,filter:"blur(3px)",userSelect:"none" as const}}>
                           <span style={{color:C.t3}}>💡 Steuerklasse 3 tip</span>
                           <span style={{fontWeight:600,color:C.grn}}>+€{sk3Preview.toLocaleString()}/mo</span>
                         </div>
                       </div>
-                    : <div style={{fontSize:11,color:C.t3,textAlign:"center",padding:"4px 0 2px"}}>
-                        Church tax, Steuerklasse 3 &amp; 2 more rows after you calculate →
+                    : <div style={{fontSize:12,color:C.t3,marginTop:6}}>
+                        Church tax, Steuerklasse 3 &amp; 2 more after you calculate →
                       </div>
                   }
                 </div>
               );
             })()}
-            <p style={{fontSize:12,color:C.t3,display:"flex",flexWrap:"wrap",gap:8}}>
+
+            <p style={{fontSize:12,color:C.t3,display:"flex",flexWrap:"wrap" as const,gap:8,marginTop:8}}>
               <span>✦ Built by Supradeep · fellow expat</span><span>·</span><span>Free forever</span><span>·</span><span>Nothing stored</span>
             </p>
           </div>
 
-          {/* RIGHT: form — grouped card layout */}
-          <div style={{position:"sticky",top:74,alignSelf:"start"}}>
-            {/* shared card style */}
+          {/* ── RIGHT: slim control strip ── */}
+          <div style={{position:"sticky",top:148,alignSelf:"start"}}>
             {(()=>{
-              const card={background:C.bg1,border:"1px solid rgba(255,255,255,0.07)",borderRadius:12,padding:"16px 18px"} as const;
-              const eyebrow=(txt:string)=><div style={{fontSize:10,fontWeight:700,letterSpacing:"2px",textTransform:"uppercase" as const,color:C.t3,marginBottom:12}}>{txt}</div>;
-              const selWrap=(val:string,setter:(v:string)=>void,opts:string[])=>(
-                <div style={{position:"relative",flex:1}}>
-                  <select value={val} onChange={e=>setter(e.target.value)} style={{width:"100%",background:C.bgi,border:`1px solid ${C.b1}`,borderRadius:8,color:C.t1,fontFamily:"Outfit,sans-serif",fontSize:14,padding:"11px 32px 11px 12px",appearance:"none"}}>
-                    {opts.map(o=><option key={o} style={{background:"#0d1829"}}>{o}</option>)}
-                  </select>
-                  <span style={{position:"absolute",right:10,top:"50%",transform:"translateY(-50%)",color:C.t3,pointerEvents:"none",fontSize:12}}>▾</span>
+              // Helpers
+              const sec=(title:string,hint?:string)=>(
+                <div style={{marginBottom:4}}>
+                  <div style={{fontSize:10,fontWeight:700,letterSpacing:"2px",textTransform:"uppercase" as const,color:C.t3}}>{title}</div>
+                  {hint&&<div style={{fontSize:11,color:C.t3,marginTop:2,lineHeight:1.5}}>{hint}</div>}
                 </div>
               );
-              const pill=(label:string,active:boolean,onClick:()=>void)=>(
-                <button onClick={onClick} style={{flex:1,padding:"9px 6px",textAlign:"center",background:active?C.gold:C.bgi,border:`1px solid ${active?C.gold:C.b1}`,borderRadius:8,color:active?"#070f1c":C.t2,fontFamily:"Outfit,sans-serif",fontSize:12,fontWeight:active?700:500,cursor:"pointer",whiteSpace:"nowrap" as const}}>{label}</button>
+              const sub=(txt:string)=><div style={{fontSize:11,color:C.t3,marginTop:5,lineHeight:1.5}}>{txt}</div>;
+              const pill=(label:string,active:boolean,onClick:()=>void,accentColor?:string)=>(
+                <button className="pill-sm" onClick={onClick}
+                  style={{background:active?(accentColor??C.gold):"transparent",border:`1px solid ${active?(accentColor??C.gold):"rgba(255,255,255,0.1)"}`,color:active?(accentColor?C.t1:"#070f1c"):C.t3,fontWeight:active?700:400}}>
+                  {label}
+                </button>
               );
-              const sliderRow=(lbl:string,val:number,setter:(v:number)=>void,min:number,max:number,step:number,fmtVal:string,hint?:string,inputKey?:string)=>(
-                <div>
-                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
+              const divider=()=><div style={{height:1,background:"rgba(255,255,255,.06)",margin:"18px 0"}}/>;
+              const sliderField=(lbl:string,val:number,setter:(v:number)=>void,min:number,max:number,step:number,fmtVal:string,ctx:string,inputKey:string)=>(
+                <div style={{marginBottom:20}}>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-end",marginBottom:2}}>
                     <span style={{fontSize:13,color:C.t2,fontWeight:500}}>{lbl}</span>
                     <input className="currency-input" type="text"
                       value={focusedInput===inputKey?tempInputValue:fmtVal}
-                      onFocus={()=>{setFocusedInput(inputKey??lbl);setTempInputValue(String(val));}}
+                      onFocus={()=>{setFocusedInput(inputKey);setTempInputValue(String(val));}}
                       onBlur={()=>{setFocusedInput(null);let p=parseFloat(tempInputValue);if(isNaN(p))p=min;setter(Math.max(min,Math.min(max,p)));}}
                       onChange={e=>setTempInputValue(e.target.value)}
-                      style={{color:C.gold,fontSize:15,fontWeight:700,letterSpacing:0,textTransform:"none" as const,width:"auto",textAlign:"right",background:"none",border:"none",outline:"none",fontFamily:"Outfit,sans-serif",cursor:"text"}}
+                      style={{color:C.gold,fontSize:16,fontWeight:700,background:"none",border:"none",borderBottom:`1px solid ${focusedInput===inputKey?"rgba(245,158,11,.6)":"rgba(255,255,255,.1)"}`,outline:"none",fontFamily:"Outfit,sans-serif",padding:"0 0 3px",cursor:"text",width:120,textAlign:"right",transition:"border-color .15s"}}
                     />
                   </div>
-                  <div style={{padding:"0 6px",background:C.bgi,border:`1px solid ${C.b1}`,borderRadius:8}}>
-                    <input type="range" min={min} max={max} step={step} value={val} onChange={e=>setter(+e.target.value)} style={{backgroundImage:sliderBg(val,min,max)}}/>
-                  </div>
-                  {hint&&rateDate&&<div style={{fontSize:11,color:C.t3,marginTop:3,textAlign:"right"}}>{hint}</div>}
+                  <input type="range" min={min} max={max} step={step} value={val} onChange={e=>setter(+e.target.value)} style={{backgroundImage:sliderBg(val,min,max),marginBottom:3}}/>
+                  {rateDate&&<div style={{fontSize:11,color:C.t3,textAlign:"right"}}>{ctx}</div>}
                 </div>
               );
 
               return (
-                <div style={{display:"flex",flexDirection:"column",gap:10}}>
+                <div style={{display:"flex",flexDirection:"column"}}>
 
-                  {/* ── Card A: ROUTE ── */}
-                  <div style={card}>
-                    {eyebrow("Route")}
-                    {/* City row */}
-                    {dir==="opp"
-                      ? selWrap(deCity,setDeCity,deCities)
-                      : <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:dir==="in2de"?12:0}}>
-                          {dir==="in2de"
-                            ? <>{selWrap(inCity,setInCity,inCities)}<span style={{fontSize:16,color:C.t3,flexShrink:0}}>→</span>{selWrap(deCity,setDeCity,deCities)}</>
-                            : <>{selWrap(deCity,setDeCity,deCities)}<span style={{fontSize:16,color:C.t3,flexShrink:0}}>→</span>{selWrap(inCity,setInCity,inCities)}</>
-                          }
-                        </div>
-                    }
-                    {/* Profession + seniority — in2de only */}
-                    {dir==="in2de"&&<>
-                      <div style={{position:"relative",marginBottom:10}}>
-                        <select value={field} onChange={e=>setField(e.target.value)} style={{width:"100%",background:C.bgi,border:`1px solid ${C.b1}`,borderRadius:8,color:C.t2,fontFamily:"Outfit,sans-serif",fontSize:13,padding:"10px 32px 10px 12px",appearance:"none"}}>
-                          {['Software Engineer / IT','Data / ML Engineer','Mechanical Engineer','Electrical Engineer','Civil / Structural Engineer','Finance / Accounting','Product Manager','Other'].map(o=><option key={o} style={{background:"#0d1829"}}>{o}</option>)}
+                  {/* ── ROUTE ── */}
+                  {sec("Route")}
+                  {dir==="opp"
+                    ? <div style={{position:"relative",marginBottom:16}}>
+                        <select className="ul-select" value={deCity} onChange={e=>setDeCity(e.target.value)}>
+                          {deCities.map(o=><option key={o} style={{background:"#0b1020"}}>{o}</option>)}
                         </select>
-                        <span style={{position:"absolute",right:10,top:"50%",transform:"translateY(-50%)",color:C.t3,pointerEvents:"none",fontSize:12}}>▾</span>
+                        <span style={{position:"absolute",right:0,bottom:10,color:C.t3,pointerEvents:"none",fontSize:11}}>▾</span>
                       </div>
-                      <div style={{display:"flex",gap:6}}>
-                        {(['Junior (0–3 yrs)','Mid (4–8 yrs)','Senior (8+ yrs)'] as const).map(opt=>pill(opt,seniority===opt,()=>setSeniority(opt)))}
-                      </div>
-                    </>}
-                    {/* Savings — primary for opp */}
-                    {dir==="opp"&&<div style={{marginTop:12}}>
-                      {sliderRow("Savings to bring",savings,setSavings,2000,30000,500,`€${(savings/1000).toFixed(0)}K`,"Cash before first salary lands","savings")}
-                    </div>}
-                  </div>
-
-                  {/* ── Card B: NUMBERS ── */}
-                  {dir!=="opp"&&<div style={card}>
-                    {eyebrow("Numbers")}
-                    <div style={{display:"flex",flexDirection:"column",gap:16}}>
-                      {sliderRow(
-                        dir==="in2de"?"Current Indian CTC":"India CTC Offer",
-                        ctc,setCtc,
-                        dir==="in2de"?500000:1500000,dir==="in2de"?10000000:30000000,500000,
-                        `₹${(ctc/1e5).toFixed(0)}L / yr`,
-                        `≈ €${Math.round(ctc/rate/1000)}K/yr equivalent`,
-                        "ctc"
-                      )}
-                      {sliderRow(
-                        dir==="in2de"?"German gross offer":"Current German gross",
-                        gross,setGross,40000,150000,5000,
-                        `€${(gross/1000).toFixed(0)}K / yr`,
-                        `≈ ₹${(gross*rate/1e5).toFixed(1)}L/yr · net ~€${calcDE(gross,fam!=="single"?3:1,false).net.toLocaleString()}/mo`,
-                        "gross"
-                      )}
-                      {dir==="de2in"&&<div style={{fontSize:11,fontStyle:"italic",color:C.t3,marginTop:-8}}>₹{((ctc*0.7)/1e5).toFixed(1)}L likely fixed (70% of CTC). Variable pay is conditional.</div>}
-                      {/* India tax regime — inline in Numbers card */}
-                      <div>
-                        <div style={{fontSize:12,color:C.t3,marginBottom:7}}>India tax regime</div>
-                        <div style={{display:"flex",gap:6}}>
-                          {([["new","New regime (FY26)"],["old","Old regime"]] as ["new"|"old",string][]).map(([v,l])=>pill(l,inRegime===v,()=>setInRegime(v)))}
+                    : <div style={{display:"flex",alignItems:"flex-end",gap:10,marginBottom:16}}>
+                        <div style={{flex:1,position:"relative"}}>
+                          <div style={{fontSize:10,color:C.t3,marginBottom:2}}>{dir==="in2de"?"From (India)":"From (Germany)"}</div>
+                          <select className="ul-select" value={dir==="in2de"?inCity:deCity} onChange={e=>dir==="in2de"?setInCity(e.target.value):setDeCity(e.target.value)}>
+                            {(dir==="in2de"?inCities:deCities).map(o=><option key={o} style={{background:"#0b1020"}}>{o}</option>)}
+                          </select>
+                          <span style={{position:"absolute",right:0,bottom:10,color:C.t3,pointerEvents:"none",fontSize:11}}>▾</span>
                         </div>
-                        <div style={{fontSize:11,color:C.t3,marginTop:5}}>{inRegime==="old"?"Old regime: ₹50K std deduction + 80C PF. Better with HRA/home loan.":"New regime: ₹75K std deduction, zero-tax ≤ ₹12L. No 80C/HRA."}</div>
+                        <span style={{fontSize:18,color:C.t3,paddingBottom:10,flexShrink:0}}>→</span>
+                        <div style={{flex:1,position:"relative"}}>
+                          <div style={{fontSize:10,color:C.t3,marginBottom:2}}>{dir==="in2de"?"To (Germany)":"To (India)"}</div>
+                          <select className="ul-select" value={dir==="in2de"?deCity:inCity} onChange={e=>dir==="in2de"?setDeCity(e.target.value):setInCity(e.target.value)}>
+                            {(dir==="in2de"?deCities:inCities).map(o=><option key={o} style={{background:"#0b1020"}}>{o}</option>)}
+                          </select>
+                          <span style={{position:"absolute",right:0,bottom:10,color:C.t3,pointerEvents:"none",fontSize:11}}>▾</span>
+                        </div>
                       </div>
-                    </div>
-                  </div>}
+                  }
 
-                  {/* ── Card C: PROFILE ── */}
-                  <div style={card}>
-                    {eyebrow("Profile")}
-                    <div style={{display:"flex",gap:8,marginBottom:10}}>
-                      {([["single","Single"],["married","Married"],["married-kids","+ Kids"]] as const).map(([v,l])=>pill(l,fam===v,()=>setFam(v)))}
+                  {dir==="in2de"&&<>
+                    <div style={{position:"relative",marginBottom:8}}>
+                      <select className="ul-select" value={field} onChange={e=>setField(e.target.value)}>
+                        {['Software Engineer / IT','Data / ML Engineer','Mechanical Engineer','Electrical Engineer','Civil / Structural Engineer','Finance / Accounting','Product Manager','Other'].map(o=><option key={o} style={{background:"#0b1020"}}>{o}</option>)}
+                      </select>
+                      <span style={{position:"absolute",right:0,bottom:10,color:C.t3,pointerEvents:"none",fontSize:11}}>▾</span>
                     </div>
-                    {dir==="in2de"&&<div style={{fontSize:12,color:C.t3,marginBottom:10}}>Tax Class {tc} · all-in rate: <span style={{color:C.gold,fontWeight:600}}>{de_live.effRate}%</span></div>}
-                    {dir==="de2in"&&<div style={{fontSize:12,color:C.t2,marginBottom:10}}>🇩🇪 €{liveDeNet}/mo · {liveDeEff}% &nbsp;|&nbsp; 🇮🇳 ₹{liveInNet}/mo · {liveInEff}%</div>}
-                    {/* Church tax */}
-                    {(dir==="in2de"||dir==="opp")&&<div onClick={()=>setNoKirche(p=>!p)} style={{display:"flex",alignItems:"center",gap:10,padding:"10px 12px",background:C.bgi,border:`1px solid ${noKirche?C.grnL:C.b1}`,borderRadius:8,cursor:"pointer",transition:"border-color .2s"}}>
-                      <div style={{width:16,height:16,borderRadius:3,border:`2px solid ${noKirche?C.grn:C.t3}`,background:noKirche?C.grn:"none",flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",transition:"all .2s"}}>
-                        {noKirche&&<span style={{color:"#07111f",fontSize:10,fontWeight:700,lineHeight:1}}>✓</span>}
+                    <div style={{display:"flex",gap:6,marginBottom:4}}>
+                      {(['Junior (0–3 yrs)','Mid (4–8 yrs)','Senior (8+ yrs)'] as const).map(opt=>pill(opt,seniority===opt,()=>setSeniority(opt),"rgba(99,179,237,.8)"))}
+                    </div>
+                    {sub("Used to benchmark your offer against actual {field} salaries in {deCity}.".replace("{field}",field.split(" /")[0]).replace("{deCity}",deCity))}
+                  </>}
+
+                  {dir==="opp"&&<>
+                    {divider()}
+                    {sec("Savings to bring","Cash available in your account before your first German payslip.")}
+                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-end",marginBottom:2}}>
+                      <span style={{fontSize:13,color:C.t2}}>Amount</span>
+                      <span style={{fontSize:16,fontWeight:700,color:C.gold}}>€{(savings/1000).toFixed(0)}K</span>
+                    </div>
+                    <input type="range" min={2000} max={30000} step={500} value={savings} onChange={e=>setSavings(+e.target.value)} style={{backgroundImage:sliderBg(savings,2000,30000)}}/>
+                    {sub(`€${(savings/1000).toFixed(0)}K in ${deCity} covers roughly ${Math.floor(savings/2200)}–${Math.ceil(savings/1800)} months of basic living.`)}
+                  </>}
+
+                  {divider()}
+
+                  {/* ── NUMBERS ── */}
+                  {dir!=="opp"&&<>
+                    {sec("Numbers")}
+                    {sliderField(
+                      dir==="in2de"?"Your Indian CTC":"India offer CTC",
+                      ctc,setCtc,
+                      dir==="in2de"?500000:1500000,dir==="in2de"?10000000:30000000,500000,
+                      `₹${(ctc/1e5).toFixed(0)}L/yr`,
+                      `≈ €${Math.round(ctc/rate/1000)}K/yr · take-home ~₹${(ctc*0.47/12/1000).toFixed(0)}K/mo`,
+                      "ctc"
+                    )}
+                    {dir==="de2in"&&<div style={{fontSize:11,color:C.t3,marginTop:-14,marginBottom:14}}>Only ₹{((ctc*0.7)/1e5).toFixed(1)}L (~70%) is likely fixed. Variable pay is conditional and often not paid to new joiners.</div>}
+
+                    {sliderField(
+                      dir==="in2de"?"German gross offer":"Your German gross",
+                      gross,setGross,40000,150000,5000,
+                      `€${(gross/1000).toFixed(0)}K/yr`,
+                      `≈ ₹${(gross*rate/1e5).toFixed(1)}L/yr · net ~€${calcDE(gross,fam!=="single"?3:1,false).net.toLocaleString()}/mo`,
+                      "gross"
+                    )}
+                    <div style={{marginBottom:16}}>
+                      <div style={{fontSize:13,color:C.t2,marginBottom:8}}>India tax regime</div>
+                      <div style={{display:"flex",gap:6,marginBottom:6}}>
+                        {([["new","New FY26"],["old","Old regime"]] as ["new"|"old",string][]).map(([v,l])=>pill(l,inRegime===v,()=>setInRegime(v),"rgba(245,158,11,.8)"))}
                       </div>
-                      <div style={{flex:1}}>
-                        <span style={{fontSize:13,fontWeight:600,color:noKirche?C.grn:C.t1}}>{noKirche?"Opted out of church tax":"Opt out of church tax"}</span>
-                        <span style={{fontSize:12,color:noKirche?C.grn:C.gold,marginLeft:8,fontWeight:600}}>{noKirche?`+€${de_live.kirche}/mo saved`:`Save €${de_live.kirche}/mo`}</span>
-                      </div>
-                    </div>}
+                      {sub(inRegime==="old"
+                        ?"Old regime: ₹50K standard deduction + up to ₹1.5L via 80C (PF). Best if you claim HRA or have a home loan."
+                        :"New regime: ₹75K standard deduction. Zero tax up to ₹12L income. No 80C or HRA — simpler and better for most salaried employees.")}
+                    </div>
+                    {divider()}
+                  </>}
+
+                  {/* ── PROFILE ── */}
+                  {sec("Profile")}
+                  <div style={{fontSize:13,color:C.t2,marginBottom:8}}>Family status</div>
+                  <div style={{display:"flex",gap:6,marginBottom:6}}>
+                    {([["single","Single"],["married","Married"],["married-kids","+ Kids"]] as const).map(([v,l])=>pill(l,fam===v,()=>setFam(v),"rgba(16,217,140,.8)"))}
                   </div>
+                  {dir==="in2de"&&sub(`Tax Class ${tc} in Germany. Your all-in deduction rate: ${de_live.effRate}% of gross (tax + health + pension).`)}
+                  {dir==="de2in"&&sub(`🇩🇪 Take-home: €${liveDeNet}/mo at ${liveDeEff}% all-in · 🇮🇳 Take-home: ₹${liveInNet}/mo at ${liveInEff}% effective.`)}
 
-                  {/* ── Advanced options (collapsible) ── */}
+                  {(dir==="in2de"||dir==="opp")&&<>
+                    {divider()}
+                    <div onClick={()=>setNoKirche(p=>!p)} style={{display:"flex",alignItems:"flex-start",gap:12,cursor:"pointer",padding:"2px 0"}}>
+                      <div style={{width:18,height:18,borderRadius:4,border:`2px solid ${noKirche?C.grn:"rgba(255,255,255,.2)"}`,background:noKirche?C.grn:"transparent",flexShrink:0,marginTop:2,display:"flex",alignItems:"center",justifyContent:"center",transition:"all .15s"}}>
+                        {noKirche&&<span style={{color:"#080c14",fontSize:11,fontWeight:700}}>✓</span>}
+                      </div>
+                      <div>
+                        <div style={{fontSize:13,fontWeight:600,color:noKirche?C.grn:C.t2}}>Opt out of church tax</div>
+                        <div style={{fontSize:11,color:C.t3,marginTop:3,lineHeight:1.5}}>{noKirche?`You save €${de_live.kirche}/mo (€${(de_live.kirche*12).toLocaleString()}/yr). Declare "konfessionslos" at Anmeldung.`:`Saves €${de_live.kirche}/mo. One form at the registration office — takes 10 minutes.`}</div>
+                      </div>
+                    </div>
+                  </>}
+
+                  {divider()}
+
+                  {/* ── MORE OPTIONS ── */}
                   <button onClick={()=>setAdvOpen(p=>!p)}
-                    style={{display:"flex",alignItems:"center",justifyContent:"space-between",width:"100%",background:"none",border:`1px solid ${C.b1}`,borderRadius:10,padding:"10px 16px",cursor:"pointer",fontFamily:"Outfit,sans-serif",color:C.t2,fontSize:13,fontWeight:600,transition:"border-color .2s"}}
-                    onMouseEnter={e=>(e.currentTarget.style.borderColor=C.gold)}
-                    onMouseLeave={e=>(e.currentTarget.style.borderColor=C.b1)}>
-                    <span>More options</span>
-                    <span style={{fontSize:11,display:"inline-block",transform:advOpen?"rotate(180deg)":"rotate(0deg)",transition:"transform .2s"}}>▾</span>
+                    style={{display:"flex",alignItems:"center",gap:6,background:"none",border:"none",color:C.t3,fontFamily:"Outfit,sans-serif",fontSize:12,cursor:"pointer",padding:"0 0 2px",marginBottom:advOpen?16:0}}>
+                    <span style={{display:"inline-block",transform:advOpen?"rotate(90deg)":"rotate(0deg)",transition:"transform .15s",fontSize:10}}>▶</span>
+                    <span>{advOpen?"Hide":"Show"} remittance, commitments &amp; lifestyle</span>
                   </button>
 
-                  {advOpen&&<div style={{...card,gap:16,display:"flex",flexDirection:"column"}}>
-                    {/* Remittance */}
-                    {dir!=="opp"&&<div>
-                      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
-                        <span style={{fontSize:13,color:C.t2,fontWeight:500,display:"flex",alignItems:"center",gap:8}}>
-                          {dir==="in2de"?"Remittance to India":"Transfer to Germany"}
-                          <div style={{display:"flex",background:C.bgi,border:`1px solid ${C.b1}`,borderRadius:5,height:22}}>
-                            <button onClick={()=>setRemittanceCurrency("inr")} style={{background:remittanceCurrency==="inr"?C.gold:"none",border:"none",borderRadius:3,padding:"0 7px",fontSize:10,fontWeight:600,color:remittanceCurrency==="inr"?"#070f1c":C.t2,cursor:"pointer"}}>₹</button>
-                            <button onClick={()=>setRemittanceCurrency("eur")} style={{background:remittanceCurrency==="eur"?C.gold:"none",border:"none",borderRadius:3,padding:"0 7px",fontSize:10,fontWeight:600,color:remittanceCurrency==="eur"?"#070f1c":C.t2,cursor:"pointer"}}>€</button>
-                          </div>
-                        </span>
-                        <input className="currency-input" type="text"
-                          value={focusedInput==="remittance"?tempInputValue:`${remittanceCurrency==="inr"?"₹":"€"}${formatCurrency(rem,remittanceCurrency)}/ mo`}
-                          onFocus={()=>{setFocusedInput("remittance");setTempInputValue(String(rem));}}
-                          onBlur={()=>{setFocusedInput(null);let p=parseFloat(tempInputValue);if(isNaN(p))p=0;setRem(Math.max(0,Math.min(dir==="in2de"?300000:200000,p)));}}
-                          onChange={e=>setTempInputValue(e.target.value)}
-                          style={{color:C.gold,fontSize:14,fontWeight:600,letterSpacing:0,textTransform:"none" as const,width:"auto",textAlign:"right",background:"none",border:"none",outline:"none",fontFamily:"Outfit,sans-serif"}}/>
-                      </div>
-                      <div style={{padding:"0 6px",background:C.bgi,border:`1px solid ${C.b1}`,borderRadius:8}}>
+                  {advOpen&&<div style={{display:"flex",flexDirection:"column",gap:0}}>
+                    {dir!=="opp"&&<>
+                      <div style={{marginBottom:20}}>
+                        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-end",marginBottom:2}}>
+                          <span style={{fontSize:13,color:C.t2,display:"flex",alignItems:"center",gap:6}}>
+                            {dir==="in2de"?"Remittance home":"Transfer to DE"}
+                            <span style={{display:"flex",background:"rgba(255,255,255,.06)",borderRadius:4,overflow:"hidden"}}>
+                              {(["inr","eur"] as const).map(c=><button key={c} onClick={()=>setRemittanceCurrency(c)} style={{background:remittanceCurrency===c?"rgba(245,158,11,.7)":"none",border:"none",padding:"1px 6px",fontSize:10,fontWeight:600,color:remittanceCurrency===c?"#080c14":C.t3,cursor:"pointer"}}>{c==="inr"?"₹":"€"}</button>)}
+                            </span>
+                          </span>
+                          <input className="currency-input" type="text"
+                            value={focusedInput==="remittance"?tempInputValue:`${remittanceCurrency==="inr"?"₹":"€"}${formatCurrency(rem,remittanceCurrency)}/mo`}
+                            onFocus={()=>{setFocusedInput("remittance");setTempInputValue(String(rem));}}
+                            onBlur={()=>{setFocusedInput(null);let p=parseFloat(tempInputValue);if(isNaN(p))p=0;setRem(Math.max(0,Math.min(dir==="in2de"?300000:200000,p)));}}
+                            onChange={e=>setTempInputValue(e.target.value)}
+                            style={{color:C.gold,fontSize:15,fontWeight:700,background:"none",border:"none",borderBottom:"1px solid rgba(255,255,255,.1)",outline:"none",fontFamily:"Outfit,sans-serif",padding:"0 0 3px",width:110,textAlign:"right"}}/>
+                        </div>
                         <input type="range" min={0} max={dir==="in2de"?300000:200000} step={5000} value={rem} onChange={e=>setRem(+e.target.value)} style={{backgroundImage:sliderBg(rem,0,dir==="in2de"?300000:200000)}}/>
                       </div>
-                    </div>}
-                    {/* Commitments */}
-                    <div>
-                      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
-                        <span style={{fontSize:13,color:C.t2,fontWeight:500,display:"flex",alignItems:"center",gap:8}}>
-                          Monthly commitments
-                          <div style={{display:"flex",background:C.bgi,border:`1px solid ${C.b1}`,borderRadius:5,height:22}}>
-                            <button onClick={()=>setCommitmentsCurrency("inr")} style={{background:commitmentsCurrency==="inr"?C.gold:"none",border:"none",borderRadius:3,padding:"0 7px",fontSize:10,fontWeight:600,color:commitmentsCurrency==="inr"?"#070f1c":C.t2,cursor:"pointer"}}>₹</button>
-                            <button onClick={()=>setCommitmentsCurrency("eur")} style={{background:commitmentsCurrency==="eur"?C.gold:"none",border:"none",borderRadius:3,padding:"0 7px",fontSize:10,fontWeight:600,color:commitmentsCurrency==="eur"?"#070f1c":C.t2,cursor:"pointer"}}>€</button>
-                          </div>
-                        </span>
-                        <input className="currency-input" type="text"
-                          value={focusedInput==="commitments"?tempInputValue:`${commitmentsCurrency==="inr"?"₹":"€"}${formatCurrency(commitments,commitmentsCurrency)}/ mo`}
-                          onFocus={()=>{setFocusedInput("commitments");setTempInputValue(String(commitments));}}
-                          onBlur={()=>{setFocusedInput(null);let p=parseFloat(tempInputValue);if(isNaN(p))p=0;setCommitments(Math.max(0,Math.min(500000,p)));}}
-                          onChange={e=>setTempInputValue(e.target.value)}
-                          style={{color:C.gold,fontSize:14,fontWeight:600,letterSpacing:0,textTransform:"none" as const,width:"auto",textAlign:"right",background:"none",border:"none",outline:"none",fontFamily:"Outfit,sans-serif"}}/>
-                      </div>
-                      <div style={{padding:"0 6px",background:C.bgi,border:`1px solid ${C.b1}`,borderRadius:8}}>
+                      <div style={{marginBottom:20}}>
+                        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-end",marginBottom:2}}>
+                          <span style={{fontSize:13,color:C.t2,display:"flex",alignItems:"center",gap:6}}>
+                            Monthly commitments
+                            <span style={{display:"flex",background:"rgba(255,255,255,.06)",borderRadius:4,overflow:"hidden"}}>
+                              {(["inr","eur"] as const).map(c=><button key={c} onClick={()=>setCommitmentsCurrency(c)} style={{background:commitmentsCurrency===c?"rgba(245,158,11,.7)":"none",border:"none",padding:"1px 6px",fontSize:10,fontWeight:600,color:commitmentsCurrency===c?"#080c14":C.t3,cursor:"pointer"}}>{c==="inr"?"₹":"€"}</button>)}
+                            </span>
+                          </span>
+                          <input className="currency-input" type="text"
+                            value={focusedInput==="commitments"?tempInputValue:`${commitmentsCurrency==="inr"?"₹":"€"}${formatCurrency(commitments,commitmentsCurrency)}/mo`}
+                            onFocus={()=>{setFocusedInput("commitments");setTempInputValue(String(commitments));}}
+                            onBlur={()=>{setFocusedInput(null);let p=parseFloat(tempInputValue);if(isNaN(p))p=0;setCommitments(Math.max(0,Math.min(500000,p)));}}
+                            onChange={e=>setTempInputValue(e.target.value)}
+                            style={{color:C.gold,fontSize:15,fontWeight:700,background:"none",border:"none",borderBottom:"1px solid rgba(255,255,255,.1)",outline:"none",fontFamily:"Outfit,sans-serif",padding:"0 0 3px",width:110,textAlign:"right"}}/>
+                        </div>
                         <input type="range" min={0} max={500000} step={5000} value={commitments} onChange={e=>setCommitments(+e.target.value)} style={{backgroundImage:sliderBg(commitments,0,500000)}}/>
+                        {sub("Home loan EMI, insurance premiums, family support — anything that leaves your account monthly regardless of location.")}
                       </div>
-                    </div>
-                    {/* Savings for in2de */}
-                    {dir==="in2de"&&sliderRow("Savings to bring",savings,setSavings,0,50000,1000,`€${(savings/1000).toFixed(0)}K`,undefined,"savings")}
-                    {/* Lifestyle for in2de */}
-                    {dir==="in2de"&&<div>
-                      <div style={{fontSize:12,color:C.t3,marginBottom:10}}>Germany lifestyle <span style={{fontStyle:"italic"}}>(adjusts thresholds)</span></div>
-                      <div style={{display:"flex",flexDirection:"column",gap:10}}>
-                        <div>
-                          <div style={{fontSize:11,color:C.t3,marginBottom:5}}>Apartment</div>
-                          <div style={{display:"flex",gap:6}}>{([["wg","Shared (WG)"],["1br","1 BR"],["2br","2 BR"]] as [string,string][]).map(([v,l])=>pill(l,in2deLifestyle.apartment===v,()=>setIn2deLifestyle(p=>({...p,apartment:v}))))}</div>
+                    </>}
+                    {dir==="in2de"&&<>
+                      <div style={{marginBottom:20}}>
+                        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-end",marginBottom:2}}>
+                          <span style={{fontSize:13,color:C.t2}}>Savings to bring (€)</span>
+                          <span style={{fontSize:15,fontWeight:700,color:C.gold}}>€{(savings/1000).toFixed(0)}K</span>
                         </div>
-                        <div>
-                          <div style={{fontSize:11,color:C.t3,marginBottom:5}}>Eating</div>
-                          <div style={{display:"flex",gap:6}}>{([["cook","Cook"],["mix","Mix"],["convenience","Eat out"]] as [string,string][]).map(([v,l])=>pill(l,in2deLifestyle.cooking===v,()=>setIn2deLifestyle(p=>({...p,cooking:v}))))}</div>
-                        </div>
-                        <div style={{display:"flex",gap:10}}>
-                          <div style={{flex:1}}>
-                            <div style={{fontSize:11,color:C.t3,marginBottom:5}}>Car</div>
-                            <div style={{display:"flex",gap:6}}>{([["false","No car"],["true","Own car"]] as [string,string][]).map(([v,l])=>pill(l,(in2deLifestyle.car?"true":"false")===v,()=>setIn2deLifestyle(p=>({...p,car:v==="true"}))))}</div>
-                          </div>
-                          <div style={{flex:1}}>
-                            <div style={{fontSize:11,color:C.t3,marginBottom:5}}>Gym</div>
-                            <div style={{display:"flex",gap:6}}>{([["none","None"],["basic","Basic"],["premium","Premium"]] as [string,string][]).map(([v,l])=>pill(l,in2deLifestyle.gym===v,()=>setIn2deLifestyle(p=>({...p,gym:v}))))}</div>
-                          </div>
-                        </div>
+                        <input type="range" min={0} max={50000} step={1000} value={savings} onChange={e=>setSavings(+e.target.value)} style={{backgroundImage:sliderBg(savings,0,50000)}}/>
+                        {sub("Cash you can bring before your first salary. Covers deposit (2–3mo rent), setup costs, and the gap month.")}
                       </div>
-                    </div>}
-                    {/* Lifestyle for opp */}
-                    {dir==="opp"&&<div>
-                      <div style={{fontSize:12,color:C.t3,marginBottom:10}}>Germany lifestyle</div>
-                      <div style={{display:"flex",flexDirection:"column",gap:10}}>
-                        <div>
-                          <div style={{fontSize:11,color:C.t3,marginBottom:5}}>Apartment</div>
-                          <div style={{display:"flex",gap:6}}>{([["wg","Shared (WG)"],["1br","1 BR"],["2br","2 BR"]] as [string,string][]).map(([v,l])=>pill(l,oppLifestyle.apartment===v,()=>updateOppLifestyle("apartment",v)))}</div>
+                    </>}
+                    {/* Lifestyle */}
+                    {(dir==="in2de"||dir==="opp")&&<div>
+                      <div style={{fontSize:12,color:C.t3,marginBottom:10}}>Germany lifestyle <span style={{fontStyle:"italic"}}>(adjusts your cost thresholds)</span></div>
+                      {[
+                        {lbl:"Apartment",opts:[["wg","Shared WG"],["1br","1 Bedroom"],["2br","2 Bedroom"]] as [string,string][],get:()=>dir==="in2de"?in2deLifestyle.apartment:oppLifestyle.apartment,set:(v:string)=>dir==="in2de"?setIn2deLifestyle(p=>({...p,apartment:v})):updateOppLifestyle("apartment",v)},
+                        {lbl:"Eating",opts:[["cook","Cook mostly"],["mix","Mix"],dir==="in2de"?["convenience","Eat out"]:["eat-out","Eat out"]] as [string,string][],get:()=>dir==="in2de"?in2deLifestyle.cooking:oppLifestyle.cooking,set:(v:string)=>dir==="in2de"?setIn2deLifestyle(p=>({...p,cooking:v})):updateOppLifestyle("cooking",v)},
+                      ].map(row=>(
+                        <div key={row.lbl} style={{marginBottom:10}}>
+                          <div style={{fontSize:11,color:C.t3,marginBottom:5}}>{row.lbl}</div>
+                          <div style={{display:"flex",gap:6}}>{row.opts.map(([v,l])=>pill(l,row.get()===v,()=>row.set(v)))}</div>
                         </div>
-                        <div>
-                          <div style={{fontSize:11,color:C.t3,marginBottom:5}}>Eating</div>
-                          <div style={{display:"flex",gap:6}}>{([["cook","Cook"],["mix","Mix"],["eat-out","Eat out"]] as [string,string][]).map(([v,l])=>pill(l,oppLifestyle.cooking===v,()=>updateOppLifestyle("cooking",v)))}</div>
-                        </div>
-                        <div style={{display:"flex",gap:10}}>
-                          <div style={{flex:1}}>
-                            <div style={{fontSize:11,color:C.t3,marginBottom:5}}>Car</div>
-                            <div style={{display:"flex",gap:6}}>{([["false","No car"],["true","Own car"]] as [string,string][]).map(([v,l])=>pill(l,(oppLifestyle.car?"true":"false")===v,()=>updateOppLifestyle("car",v==="true")))}</div>
+                      ))}
+                      <div style={{display:"flex",gap:10,marginBottom:4}}>
+                        <div style={{flex:1}}>
+                          <div style={{fontSize:11,color:C.t3,marginBottom:5}}>Car</div>
+                          <div style={{display:"flex",gap:6}}>
+                            {([["false","No car"],["true","Own car"]] as [string,string][]).map(([v,l])=>pill(l,((dir==="in2de"?in2deLifestyle:oppLifestyle).car?"true":"false")===v,()=>dir==="in2de"?setIn2deLifestyle(p=>({...p,car:v==="true"})):updateOppLifestyle("car",v==="true")))}
                           </div>
-                          <div style={{flex:1}}>
-                            <div style={{fontSize:11,color:C.t3,marginBottom:5}}>Gym</div>
-                            <div style={{display:"flex",gap:6}}>{([["none","None"],["basic","Basic"],["premium","Premium"]] as [string,string][]).map(([v,l])=>pill(l,oppLifestyle.gym===v,()=>updateOppLifestyle("gym",v)))}</div>
+                        </div>
+                        <div style={{flex:1}}>
+                          <div style={{fontSize:11,color:C.t3,marginBottom:5}}>Gym</div>
+                          <div style={{display:"flex",gap:6}}>
+                            {([["none","None"],["basic","Basic"],["premium","Premium"]] as [string,string][]).map(([v,l])=>pill(l,(dir==="in2de"?in2deLifestyle:oppLifestyle).gym===v,()=>dir==="in2de"?setIn2deLifestyle(p=>({...p,gym:v})):updateOppLifestyle("gym",v)))}
                           </div>
                         </div>
                       </div>
                     </div>}
                   </div>}
 
+                  {divider()}
+
                   {/* CTA */}
-                  <div style={{background:C.bg2,border:`1px solid ${C.b1}`,borderRadius:12,padding:"16px 18px"}}>
-                    <button onClick={handleRun} disabled={loading} style={{width:"100%",padding:"16px 32px",background:C.gold,color:"#070f1c",border:"none",borderRadius:10,fontFamily:"Outfit,sans-serif",fontSize:16,fontWeight:700,cursor:loading?"not-allowed":"pointer",opacity:loading?.6:1,boxShadow:"0 4px 20px rgba(232,160,32,.3)"}}>
-                      {loading?loadMsg:dir==="opp"?"Calculate My Runway →":"Show My Full Package →"}
-                    </button>
-                    <p style={{textAlign:"center",fontSize:11,color:C.t3,margin:"8px 0 0"}}>{dir==="opp"?"Instant · Nothing stored":"~5 seconds · AI-powered · Nothing stored"}</p>
-                  </div>
+                  <button onClick={handleRun} disabled={loading}
+                    style={{width:"100%",padding:"16px",background:C.gold,color:"#080c14",border:"none",borderRadius:10,fontFamily:"Outfit,sans-serif",fontSize:16,fontWeight:700,cursor:loading?"not-allowed":"pointer",opacity:loading?.6:1,boxShadow:`0 4px 28px rgba(245,158,11,.3)`,letterSpacing:".3px"}}>
+                    {loading?loadMsg:dir==="opp"?"Calculate My Runway →":"Show My Full Package →"}
+                  </button>
+                  <p style={{textAlign:"center",fontSize:11,color:C.t3,marginTop:8}}>{dir==="opp"?"Instant · Nothing stored":"~5 sec · AI-powered · Nothing stored"}</p>
 
                 </div>
               );

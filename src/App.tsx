@@ -1583,391 +1583,336 @@ export default function App() {
               {dir==="in2de"?"Move the slider — see your real first payslip instantly.":dir==="de2in"?"See the CTC you need to match your Germany life.":"Enter your savings — see your runway and the minimum offer to accept."}
             </p>
 
-            {/* Live preview */}
-            {dir!=="opp"&&<div style={{background:C.bg2,border:`1px solid ${C.b1}`,borderRadius:14,padding:22,marginBottom:20}}>
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:18}}>
-                <span style={{fontSize:11,fontWeight:600,letterSpacing:"1.5px",textTransform:"uppercase",color:C.t3}}>Live payslip preview</span>
-                <span style={{display:"flex",alignItems:"center",gap:5,fontSize:11,color:C.grn}}><span style={{width:6,height:6,borderRadius:"50%",background:C.grn,display:"inline-block",animation:"pulse 2.5s ease-in-out infinite"}}/>updating live</span>
-              </div>
-              <div style={{display:"grid",gridTemplateColumns:"1fr auto 1fr",gap:12,alignItems:"center",marginBottom:16}}>
-                <div style={{textAlign:"center",padding:"14px 10px",borderRadius:8,background:C.redD,border:"1px solid rgba(255,91,91,.2)"}}>
-                  <div style={{fontSize:10,letterSpacing:"1.2px",textTransform:"uppercase",color:C.t3,marginBottom:6}}>EUR ÷ ₹{Math.round(rate)}</div>
-                  <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:28,fontWeight:700,color:C.red,textDecoration:"line-through"}}>€{de_live.gross.toLocaleString()}</div>
-                  <div style={{fontSize:10,color:C.t3,marginTop:4}}>what people assume</div>
+            {/* Live preview — tax waterfall */}
+            {dir!=="opp"&&(()=>{
+              const gross=de_live.gross,net=de_live.net,tax=de_live.tax,hn=de_live.health+de_live.nursing,pen=de_live.pension,soli=de_live.soli,kirche=de_live.kirche;
+              const netPct=net/gross*100,taxPct=tax/gross*100,hnPct=hn/gross*100,penPct=pen/gross*100,soliPct=Math.max(0,(soli+(noKirche?0:kirche))/gross*100);
+              // mini bar helper
+              const miniBar=(val:number,color:string)=>(
+                <div style={{flex:1,height:4,background:C.bg1,borderRadius:2,overflow:"hidden",marginLeft:8}}>
+                  <div style={{height:"100%",background:color,borderRadius:2,width:`${Math.min(100,val/gross*100*3)}%`,transition:"width .4s"}}/>
                 </div>
-                <div style={{fontSize:18,color:C.t3,textAlign:"center"}}>→</div>
-                <div style={{textAlign:"center",padding:"14px 10px",borderRadius:8,background:C.goldD,border:`1px solid ${C.goldL}`}}>
-                  <div style={{fontSize:10,letterSpacing:"1.2px",textTransform:"uppercase",color:C.t3,marginBottom:6}}>Real net</div>
-                  <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:28,fontWeight:700,color:C.gold}}>€{de_live.net.toLocaleString()}</div>
-                  <div style={{fontSize:10,color:C.t3,marginTop:4}}>actual first payslip</div>
-                </div>
-              </div>
-              <div style={{marginBottom:14}}>
-                <div style={{display:"flex",justifyContent:"space-between",fontSize:11,color:C.t3,marginBottom:5}}>
-                  <span>Monthly gap</span><span style={{color:C.red,fontWeight:600}}>−€{de_live.gap.toLocaleString()}/mo</span>
-                </div>
-                <div style={{height:6,background:C.bg1,borderRadius:3,overflow:"hidden"}}>
-                  <div style={{height:"100%",background:C.red,borderRadius:3,width:`${Math.min(95,Math.round(de_live.gap/de_live.gross*100))}%`,transition:"width .4s"}}/>
-                </div>
-                <div style={{fontSize:10,color:C.t3,marginTop:4,textAlign:"right"}}>−€{(de_live.gap*12).toLocaleString()}/yr</div>
-              </div>
-              {results
-                ? <div style={{borderTop:`1px solid ${C.b0}`,paddingTop:14,display:"flex",flexDirection:"column",gap:7}}>
-                    <div style={{display:"flex",justifyContent:"space-between",fontSize:12}}>
-                      <span style={{color:C.t3}}>⛪ Church tax {noKirche?"(opted out)":"(avoidable)"}</span>
-                      <span style={{fontWeight:600,color:noKirche?C.grn:C.gold}}>{noKirche?`+€${de_live.kirche.toLocaleString()}/mo saved`:`−€${de_live.kirche.toLocaleString()}/mo`}</span>
+              );
+              return (
+                <div style={{background:C.bg2,border:`1px solid ${C.b1}`,borderRadius:14,padding:"20px 22px",marginBottom:20}}>
+                  {/* Header */}
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
+                    <span style={{fontSize:10,fontWeight:700,letterSpacing:"2px",textTransform:"uppercase",color:C.t3}}>Live payslip</span>
+                    <span style={{display:"flex",alignItems:"center",gap:5,fontSize:10,color:C.grn}}><span style={{width:5,height:5,borderRadius:"50%",background:C.grn,display:"inline-block",animation:"pulse 2.5s ease-in-out infinite"}}/>live</span>
+                  </div>
+
+                  {/* Hero take-home */}
+                  <div style={{marginBottom:16}}>
+                    <div style={{fontSize:10,fontWeight:600,letterSpacing:"1.5px",textTransform:"uppercase",color:C.t3,marginBottom:4}}>You take home</div>
+                    <div style={{display:"flex",alignItems:"baseline",gap:6}}>
+                      <span style={{fontFamily:"'Cormorant Garamond',serif",fontSize:44,fontWeight:700,color:C.gold,lineHeight:1}}>€{net.toLocaleString()}</span>
+                      <span style={{fontSize:14,color:C.t2,fontWeight:500}}>/month</span>
                     </div>
-                    <div style={{display:"flex",justifyContent:"space-between",fontSize:12}}><span style={{color:C.t3}}>🧹 Domestic help delta</span><span style={{fontWeight:600,color:C.t2}}>−€{helpPreview}/mo equiv</span></div>
-                    <div style={{display:"flex",justifyContent:"space-between",fontSize:12,filter:"blur(3px)",userSelect:"none"}}><span style={{color:C.t3}}>💡 Steuerklasse 3 tip</span><span style={{fontWeight:600,color:C.grn}}>+€{sk3Preview.toLocaleString()}/mo</span></div>
+                    <div style={{fontSize:12,color:C.t3,marginTop:3}}>from €{gross.toLocaleString()} gross · EUR/INR ₹{Math.round(rate)}</div>
                   </div>
-                : <div style={{borderTop:`1px solid ${C.b0}`,paddingTop:12,textAlign:"center",fontSize:11,color:C.t3}}>
-                    + Church tax, domestic help delta & 5 more rows after you calculate ↓
+
+                  {/* Waterfall bar */}
+                  <div style={{display:"flex",height:10,borderRadius:6,overflow:"hidden",marginBottom:10,gap:1}}>
+                    <div style={{width:`${netPct}%`,background:C.gold,transition:"width .4s"}} title={`Net ${netPct.toFixed(0)}%`}/>
+                    <div style={{width:`${taxPct}%`,background:C.red,transition:"width .4s"}} title={`Tax ${taxPct.toFixed(0)}%`}/>
+                    <div style={{width:`${hnPct}%`,background:"rgba(255,91,91,.45)",transition:"width .4s"}} title={`Health+nursing ${hnPct.toFixed(0)}%`}/>
+                    <div style={{width:`${penPct}%`,background:"rgba(138,155,184,.4)",transition:"width .4s"}} title={`Pension ${penPct.toFixed(0)}%`}/>
+                    <div style={{flex:1,background:"rgba(138,155,184,.15)"}}/>
                   </div>
-              }
-            </div>}
+                  {/* Bar legend */}
+                  <div style={{display:"flex",gap:12,marginBottom:16,fontSize:10,color:C.t3,flexWrap:"wrap"}}>
+                    <span><span style={{display:"inline-block",width:8,height:8,borderRadius:2,background:C.gold,marginRight:4}}/>Net {netPct.toFixed(0)}%</span>
+                    <span><span style={{display:"inline-block",width:8,height:8,borderRadius:2,background:C.red,marginRight:4}}/>Tax {taxPct.toFixed(0)}%</span>
+                    <span><span style={{display:"inline-block",width:8,height:8,borderRadius:2,background:"rgba(255,91,91,.45)",marginRight:4}}/>Health {hnPct.toFixed(0)}%</span>
+                    <span><span style={{display:"inline-block",width:8,height:8,borderRadius:2,background:"rgba(138,155,184,.4)",marginRight:4}}/>Pension {penPct.toFixed(0)}%</span>
+                  </div>
+
+                  {/* Itemised deductions */}
+                  <div style={{display:"flex",flexDirection:"column",gap:7,paddingBottom:14,borderBottom:`1px solid ${C.b0}`}}>
+                    {[
+                      {lbl:"Income tax",val:tax,color:C.red},
+                      {lbl:"Health + nursing",val:hn,color:"rgba(255,91,91,.6)"},
+                      {lbl:"Pension + AV",val:pen,color:"rgba(138,155,184,.6)"},
+                    ].map(r=>(
+                      <div key={r.lbl} style={{display:"flex",alignItems:"center",gap:6}}>
+                        <span style={{fontSize:12,color:C.t3,minWidth:110}}>{r.lbl}</span>
+                        <span style={{fontSize:12,fontWeight:600,color:C.t2,minWidth:64,textAlign:"right"}}>−€{r.val.toLocaleString()}</span>
+                        {miniBar(r.val,r.color)}
+                        <span style={{fontSize:10,color:C.t3,minWidth:28,textAlign:"right"}}>{(r.val/gross*100).toFixed(0)}%</span>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Gap summary */}
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",paddingTop:12,marginBottom:results?12:0}}>
+                    <span style={{fontSize:12,color:C.t3}}>Monthly gap from gross</span>
+                    <span style={{fontSize:14,fontWeight:700,color:C.red}}>−€{de_live.gap.toLocaleString()}/mo</span>
+                  </div>
+
+                  {/* After-calc rows or teaser */}
+                  {results
+                    ? <div style={{display:"flex",flexDirection:"column",gap:6}}>
+                        <div style={{display:"flex",justifyContent:"space-between",fontSize:12}}>
+                          <span style={{color:C.t3}}>⛪ Church tax {noKirche?"(opted out)":"(avoidable)"}</span>
+                          <span style={{fontWeight:600,color:noKirche?C.grn:C.gold}}>{noKirche?`+€${kirche.toLocaleString()}/mo saved`:`−€${kirche.toLocaleString()}/mo`}</span>
+                        </div>
+                        <div style={{display:"flex",justifyContent:"space-between",fontSize:12}}>
+                          <span style={{color:C.t3}}>🧹 Domestic help delta</span>
+                          <span style={{fontWeight:600,color:C.t2}}>−€{helpPreview}/mo equiv</span>
+                        </div>
+                        <div style={{display:"flex",justifyContent:"space-between",fontSize:12,filter:"blur(3px)",userSelect:"none"}}>
+                          <span style={{color:C.t3}}>💡 Steuerklasse 3 tip</span>
+                          <span style={{fontWeight:600,color:C.grn}}>+€{sk3Preview.toLocaleString()}/mo</span>
+                        </div>
+                      </div>
+                    : <div style={{fontSize:11,color:C.t3,textAlign:"center",padding:"4px 0 2px"}}>
+                        Church tax, Steuerklasse 3 &amp; 2 more rows after you calculate →
+                      </div>
+                  }
+                </div>
+              );
+            })()}
             <p style={{fontSize:12,color:C.t3,display:"flex",flexWrap:"wrap",gap:8}}>
               <span>✦ Built by Supradeep · fellow expat</span><span>·</span><span>Free forever</span><span>·</span><span>Nothing stored</span>
             </p>
           </div>
 
-          {/* RIGHT: form */}
+          {/* RIGHT: form — grouped card layout */}
           <div style={{position:"sticky",top:74,alignSelf:"start"}}>
-            <div style={{background:C.bg2,border:`1px solid ${C.b1}`,borderRadius:20,padding:28,paddingBottom:0,display:"flex",flexDirection:"column",gap:20}}>
-              <div style={{fontSize:11,fontWeight:600,letterSpacing:"2px",textTransform:"uppercase",color:C.t3,marginBottom:6}}>Your situation</div>
-              <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:22,fontWeight:700,color:C.t1,marginBottom:24}}>Dial in your numbers</div>
-
-              {/* City selects */}
-              <div className="dual-grid" style={{display:"grid",gridTemplateColumns:dir==="opp"?"1fr":"1fr 1fr",gap:10}}>
-                {(dir==="in2de"?
-                  [["🇮🇳 Indian City",inCity,setInCity,inCities],["🇩🇪 German City",deCity,setDeCity,deCities]]:
-                  dir==="opp"?[["🇩🇪 German City",deCity,setDeCity,deCities]]:
-                  [["🇩🇪 German City",deCity,setDeCity,deCities],["🇮🇳 Indian City",inCity,setInCity,inCities]]
-                ).map(([lbl,val,setter,opts])=>(
-                  <div key={lbl as string}>
-                    <div style={{display:"flex",justifyContent:"space-between",fontSize:11,fontWeight:600,letterSpacing:"1.8px",textTransform:"uppercase",color:C.t3,marginBottom:9}}>{lbl}</div>
-                    <div style={{position:"relative"}}>
-                      <select value={val as string} onChange={e=>(setter as any)(e.target.value)} style={{width:"100%",background:C.bgi,border:`1px solid ${C.b1}`,borderRadius:8,color:C.t1,fontFamily:"Outfit,sans-serif",fontSize:15,padding:"13px 16px"}}>
-                        {(opts as string[]).map(o=><option key={o} style={{background:"#0d1829"}}>{o}</option>)}
-                      </select>
-                      <span style={{position:"absolute",right:14,top:"50%",transform:"translateY(-50%)",color:C.t3,pointerEvents:"none"}}>▾</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {/* Profession + Seniority — in2de only */}
-              {dir==="in2de"&&(
-                <>
-                  <div>
-                    <div style={{fontSize:11,fontWeight:600,letterSpacing:"1.8px",textTransform:"uppercase",color:C.t3,marginBottom:8}}>Profession / Field</div>
-                    <div style={{position:"relative"}}>
-                      <select value={field} onChange={e=>setField(e.target.value)} style={{width:"100%",background:C.bgi,border:`1px solid ${C.b1}`,borderRadius:8,color:C.t1,fontFamily:"Outfit,sans-serif",fontSize:14,padding:"12px 36px 12px 14px"}}>
-                        {['Software Engineer / IT','Data / ML Engineer','Mechanical Engineer','Electrical Engineer','Civil / Structural Engineer','Finance / Accounting','Product Manager','Other'].map(o=><option key={o} style={{background:"#0d1829"}}>{o}</option>)}
-                      </select>
-                      <span style={{position:"absolute",right:14,top:"50%",transform:"translateY(-50%)",color:C.t3,pointerEvents:"none"}}>▾</span>
-                    </div>
-                  </div>
-                  <div>
-                    <div style={{fontSize:11,fontWeight:600,letterSpacing:"1.8px",textTransform:"uppercase",color:C.t3,marginBottom:8}}>Experience Level</div>
-                    <div style={{display:"flex",gap:6}}>
-                      {(['Junior (0–3 yrs)','Mid (4–8 yrs)','Senior (8+ yrs)'] as const).map(opt=>(
-                        <button key={opt} onClick={()=>setSeniority(opt)} style={{flex:1,padding:"10px 4px",textAlign:"center",background:seniority===opt?C.gold:C.bgi,border:`1px solid ${seniority===opt?C.gold:C.b1}`,borderRadius:8,color:seniority===opt?"#070f1c":C.t2,fontFamily:"Outfit,sans-serif",fontSize:11,fontWeight:seniority===opt?700:500,cursor:"pointer",lineHeight:1.3}}>{opt}</button>
-                      ))}
-                    </div>
-                  </div>
-                </>
-              )}
-
-              {/* Savings slider — PRIMARY input for opp, shown directly in form */}
-              {dir==="opp"&&<div>
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",fontSize:11,fontWeight:600,letterSpacing:"1.8px",textTransform:"uppercase",color:C.t3,marginBottom:8}}>
-                  <span>Savings to Bring</span>
-                  <span style={{color:C.gold,fontSize:14,fontWeight:600,letterSpacing:0,textTransform:"none"}}>€{(savings/1000).toFixed(0)}K</span>
+            {/* shared card style */}
+            {(()=>{
+              const card={background:C.bg1,border:"1px solid rgba(255,255,255,0.07)",borderRadius:12,padding:"16px 18px"} as const;
+              const eyebrow=(txt:string)=><div style={{fontSize:10,fontWeight:700,letterSpacing:"2px",textTransform:"uppercase" as const,color:C.t3,marginBottom:12}}>{txt}</div>;
+              const selWrap=(val:string,setter:(v:string)=>void,opts:string[])=>(
+                <div style={{position:"relative",flex:1}}>
+                  <select value={val} onChange={e=>setter(e.target.value)} style={{width:"100%",background:C.bgi,border:`1px solid ${C.b1}`,borderRadius:8,color:C.t1,fontFamily:"Outfit,sans-serif",fontSize:14,padding:"11px 32px 11px 12px",appearance:"none"}}>
+                    {opts.map(o=><option key={o} style={{background:"#0d1829"}}>{o}</option>)}
+                  </select>
+                  <span style={{position:"absolute",right:10,top:"50%",transform:"translateY(-50%)",color:C.t3,pointerEvents:"none",fontSize:12}}>▾</span>
                 </div>
-                <div style={{padding:"0 8px",background:C.bgi,border:`1px solid ${C.b1}`,borderRadius:8}}>
-                  <input type="range" min={2000} max={30000} step={500} value={savings} onChange={e=>setSavings(+e.target.value)} style={{backgroundImage:sliderBg(savings,2000,30000)}}/>
-                </div>
-                <div style={{fontSize:11,color:C.t3,marginTop:4}}>Cash you can bring before first salary lands</div>
-              </div>}
-
-              {/* Sliders — hidden for opp direction */}
-              {dir!=="opp"&&(()=>{
-                const sliders=[
-                  {lbl:dir==="in2de"?"Current Indian CTC":"India CTC Offer",val:ctc,setter:setCtc,min:dir==="in2de"?500000:1500000,max:dir==="in2de"?10000000:30000000,step:500000,fmt:(v:number)=>`₹${(v/1e5).toFixed(0)}L / year`,hint:dir==="in2de"?`≈ €${Math.round(ctc/rate/1000)}K/yr gross equivalent`:`≈ €${Math.round(ctc/rate/1000)}K/yr gross equivalent`},
-                  {lbl:dir==="in2de"?"German Gross Offer":"Current German Gross",val:gross,setter:setGross,min:40000,max:150000,step:5000,fmt:(v:number)=>`€${(v/1000).toFixed(0)}K / year`,hint:`≈ ₹${(gross*rate/1e5).toFixed(1)}L/yr · net ~€${calcDE(gross,fam!=="single"?3:1,false).net.toLocaleString()}/mo`},
-                ];
-                return sliders.map(s=>(
-                  <div key={s.lbl}>
-                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",fontSize:11,fontWeight:600,letterSpacing:"1.8px",textTransform:"uppercase",color:C.t3,marginBottom:8}}>
-                      <span>{s.lbl}</span>
-                      <input
-                        className="currency-input"
-                        type="text"
-                        value={focusedInput === s.lbl ? tempInputValue : s.fmt(s.val)}
-                        onFocus={() => { setFocusedInput(s.lbl); setTempInputValue(String(s.val)); }}
-                        onBlur={() => {
-                          setFocusedInput(null);
-                          let parsedValue = parseFloat(tempInputValue);
-                          if (isNaN(parsedValue)) parsedValue = s.min;
-                          parsedValue = Math.max(s.min, Math.min(s.max, parsedValue));
-                          (s.setter as any)(parsedValue);
-                        }}
-                        onChange={e => setTempInputValue(e.target.value)}
-                        style={{color:C.gold,fontSize:14,fontWeight:600,letterSpacing:0,textTransform:"none",width:"auto",textAlign:"right"}}
-                      />
-                    </div>
-                    <div style={{padding:"0 8px",background:C.bgi,border:`1px solid ${C.b1}`,borderRadius:8}}>
-                      <input type="range" min={s.min} max={s.max} step={s.step} value={s.val} onChange={e=>(s.setter as any)(+e.target.value)} style={{backgroundImage:sliderBg(s.val,s.min,s.max)}}/>
-                    </div>
-                    {rateDate&&<div style={{fontSize:11,color:C.t3,marginTop:4,textAlign:"right"}}>{s.hint}</div>}
-                  </div>
-                ));
-              })()}
-
-              {/* Variable pay warning — de2in only */}
-              {dir==="de2in"&&(
-                <div style={{fontSize:11,fontStyle:"italic",color:C.t3,marginTop:-8}}>
-                  ₹{((ctc*0.7)/1e5).toFixed(1)}L likely fixed (70% of CTC). Variable pay is conditional and may not be paid.
-                </div>
-              )}
-
-              {/* India tax regime toggle — shown whenever India CTC is relevant */}
-              {dir!=="opp"&&(
+              );
+              const pill=(label:string,active:boolean,onClick:()=>void)=>(
+                <button onClick={onClick} style={{flex:1,padding:"9px 6px",textAlign:"center",background:active?C.gold:C.bgi,border:`1px solid ${active?C.gold:C.b1}`,borderRadius:8,color:active?"#070f1c":C.t2,fontFamily:"Outfit,sans-serif",fontSize:12,fontWeight:active?700:500,cursor:"pointer",whiteSpace:"nowrap" as const}}>{label}</button>
+              );
+              const sliderRow=(lbl:string,val:number,setter:(v:number)=>void,min:number,max:number,step:number,fmtVal:string,hint?:string,inputKey?:string)=>(
                 <div>
-                  <div style={{fontSize:11,fontWeight:600,letterSpacing:"1.8px",textTransform:"uppercase",color:C.t3,marginBottom:8}}>India Tax Regime</div>
-                  <div style={{display:"flex",gap:6}}>
-                    {([["new","New Regime (FY26)"],["old","Old Regime"]] as ["new"|"old",string][]).map(([v,l])=>(
-                      <button key={v} onClick={()=>setInRegime(v)} style={{flex:1,padding:"10px 8px",textAlign:"center",background:inRegime===v?C.gold:C.bgi,border:`1px solid ${inRegime===v?C.gold:C.b1}`,borderRadius:8,color:inRegime===v?"#070f1c":C.t2,fontFamily:"Outfit,sans-serif",fontSize:12,fontWeight:inRegime===v?700:500,cursor:"pointer"}}>{l}</button>
-                    ))}
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
+                    <span style={{fontSize:13,color:C.t2,fontWeight:500}}>{lbl}</span>
+                    <input className="currency-input" type="text"
+                      value={focusedInput===inputKey?tempInputValue:fmtVal}
+                      onFocus={()=>{setFocusedInput(inputKey??lbl);setTempInputValue(String(val));}}
+                      onBlur={()=>{setFocusedInput(null);let p=parseFloat(tempInputValue);if(isNaN(p))p=min;setter(Math.max(min,Math.min(max,p)));}}
+                      onChange={e=>setTempInputValue(e.target.value)}
+                      style={{color:C.gold,fontSize:15,fontWeight:700,letterSpacing:0,textTransform:"none" as const,width:"auto",textAlign:"right",background:"none",border:"none",outline:"none",fontFamily:"Outfit,sans-serif",cursor:"text"}}
+                    />
                   </div>
-                  <div style={{fontSize:11,color:C.t3,marginTop:5}}>
-                    {inRegime==="old"
-                      ?"Old regime: ₹50K std deduction + 80C PF deduction. Better if you have HRA exemptions."
-                      :"New regime: ₹75K std deduction, zero-tax ≤ ₹12L. No 80C/HRA deductions."}
+                  <div style={{padding:"0 6px",background:C.bgi,border:`1px solid ${C.b1}`,borderRadius:8}}>
+                    <input type="range" min={min} max={max} step={step} value={val} onChange={e=>setter(+e.target.value)} style={{backgroundImage:sliderBg(val,min,max)}}/>
                   </div>
+                  {hint&&rateDate&&<div style={{fontSize:11,color:C.t3,marginTop:3,textAlign:"right"}}>{hint}</div>}
                 </div>
-              )}
+              );
 
-              {/* Family pills */}
-              <div>
-                <div style={{fontSize:11,fontWeight:600,letterSpacing:"1.8px",textTransform:"uppercase",color:C.t3,marginBottom:8}}>Family Status</div>
-                <div style={{display:"flex",gap:8}}>
-                  {([["single","Single"],["married","Married"],["married-kids","Married + Kids"]] as const).map(([v,l])=>(
-                    <button key={v} onClick={()=>setFam(v)} style={{flex:1,padding:"11px 8px",textAlign:"center",background:fam===v?C.gold:C.bgi,border:`1px solid ${fam===v?C.gold:C.b1}`,borderRadius:8,color:fam===v?"#070f1c":C.t2,fontFamily:"Outfit,sans-serif",fontSize:13,fontWeight:fam===v?700:500,cursor:"pointer",whiteSpace:"nowrap"}}>{l}</button>
-                  ))}
-                </div>
-                {dir==="in2de"?(
-                  <div style={{fontSize:12,color:C.t3,textAlign:"center",marginTop:8}}>
-                    Tax Class {tc} · All-in rate (tax + social): <span style={{color:C.gold,fontWeight:600}}>{de_live.effRate}%</span>
+              return (
+                <div style={{display:"flex",flexDirection:"column",gap:10}}>
+
+                  {/* ── Card A: ROUTE ── */}
+                  <div style={card}>
+                    {eyebrow("Route")}
+                    {/* City row */}
+                    {dir==="opp"
+                      ? selWrap(deCity,setDeCity,deCities)
+                      : <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:dir==="in2de"?12:0}}>
+                          {dir==="in2de"
+                            ? <>{selWrap(inCity,setInCity,inCities)}<span style={{fontSize:16,color:C.t3,flexShrink:0}}>→</span>{selWrap(deCity,setDeCity,deCities)}</>
+                            : <>{selWrap(deCity,setDeCity,deCities)}<span style={{fontSize:16,color:C.t3,flexShrink:0}}>→</span>{selWrap(inCity,setInCity,inCities)}</>
+                          }
+                        </div>
+                    }
+                    {/* Profession + seniority — in2de only */}
+                    {dir==="in2de"&&<>
+                      <div style={{position:"relative",marginBottom:10}}>
+                        <select value={field} onChange={e=>setField(e.target.value)} style={{width:"100%",background:C.bgi,border:`1px solid ${C.b1}`,borderRadius:8,color:C.t2,fontFamily:"Outfit,sans-serif",fontSize:13,padding:"10px 32px 10px 12px",appearance:"none"}}>
+                          {['Software Engineer / IT','Data / ML Engineer','Mechanical Engineer','Electrical Engineer','Civil / Structural Engineer','Finance / Accounting','Product Manager','Other'].map(o=><option key={o} style={{background:"#0d1829"}}>{o}</option>)}
+                        </select>
+                        <span style={{position:"absolute",right:10,top:"50%",transform:"translateY(-50%)",color:C.t3,pointerEvents:"none",fontSize:12}}>▾</span>
+                      </div>
+                      <div style={{display:"flex",gap:6}}>
+                        {(['Junior (0–3 yrs)','Mid (4–8 yrs)','Senior (8+ yrs)'] as const).map(opt=>pill(opt,seniority===opt,()=>setSeniority(opt)))}
+                      </div>
+                    </>}
+                    {/* Savings — primary for opp */}
+                    {dir==="opp"&&<div style={{marginTop:12}}>
+                      {sliderRow("Savings to bring",savings,setSavings,2000,30000,500,`€${(savings/1000).toFixed(0)}K`,"Cash before first salary lands","savings")}
+                    </div>}
                   </div>
-                ):dir==="de2in"?(
-                  <div style={{textAlign:"center",marginTop:8}}>
-                    <div style={{fontSize:12,color:C.t2}}>🇩🇪 Germany net: €{liveDeNet}/mo · {liveDeEff}% all-in</div>
-                    <div style={{fontSize:12,color:C.t2,marginTop:4}}>🇮🇳 India take-home: ₹{liveInNet}/mo · {liveInEff}% effective</div>
-                  </div>
-                ):null}
-              </div>
 
-              {/* Church tax opt-out — only relevant when moving to Germany */}
-              {dir==="in2de"&&<div
-                onClick={()=>setNoKirche(p=>!p)}
-                style={{display:"flex",alignItems:"flex-start",gap:12,padding:"14px 16px",background:C.bgi,border:`1px solid ${noKirche?C.grnL:C.b1}`,borderRadius:8,cursor:"pointer",transition:"border-color .2s"}}
-              >
-                <div style={{width:18,height:18,borderRadius:4,border:`2px solid ${noKirche?C.grn:C.t3}`,background:noKirche?C.grn:"none",flexShrink:0,marginTop:1,display:"flex",alignItems:"center",justifyContent:"center",transition:"all .2s"}}>
-                  {noKirche&&<span style={{color:"#07111f",fontSize:11,fontWeight:700,lineHeight:1}}>✓</span>}
-                </div>
-                <div>
-                  <div style={{fontSize:13,fontWeight:600,color:noKirche?C.grn:C.t1,transition:"color .2s"}}>
-                    I will opt out of church tax (Kirchenaustritt)
-                  </div>
-                  <div style={{fontSize:12,color:C.t3,marginTop:3}}>
-                    {noKirche
-                      ? `Saving €${de_live.kirche.toLocaleString()}/mo — declare "konfessionslos" on Anmeldung ✓`
-                      : `Save €${de_live.kirche.toLocaleString()}/mo — one declaration at Anmeldung, done`}
-                  </div>
-                </div>
-              </div>}
-
-
-              {/* Advanced options toggle */}
-              <button
-                onClick={()=>setAdvOpen(p=>!p)}
-                style={{display:"flex",alignItems:"center",justifyContent:"space-between",width:"100%",background:"none",border:`1px solid ${C.b1}`,borderRadius:8,padding:"10px 14px",cursor:"pointer",fontFamily:"Outfit,sans-serif",color:C.t2,fontSize:13,fontWeight:600,transition:"border-color .2s"}}
-                onMouseEnter={e=>(e.currentTarget.style.borderColor=C.gold)}
-                onMouseLeave={e=>(e.currentTarget.style.borderColor=C.b1)}
-              >
-                <span>Advanced options</span>
-                <span style={{fontSize:11,transition:"transform .2s",display:"inline-block",transform:advOpen?"rotate(180deg)":"rotate(0deg)"}}>▾</span>
-              </button>
-
-              {advOpen&&<>
-              {/* Remittance — hidden for opp */}
-              {dir!=="opp"&&<div>
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
-                  <span style={{display:"flex",alignItems:"center",gap:8,fontSize:11,fontWeight:600,letterSpacing:"1.8px",textTransform:"uppercase",color:C.t3}}>
-                    {dir==="in2de"?"Monthly Remittance to India":"Monthly Transfer to Germany"}
-                    <div style={{position:"relative",display:"flex",background:C.bgi,border:`1px solid ${C.b1}`,borderRadius:6,height:24}}>
-                      <button onClick={()=>setRemittanceCurrency("inr")} style={{flex:1,background:remittanceCurrency==="inr"?C.gold:"none",border:"none",borderRadius:4,padding:"0 8px",fontSize:10,fontWeight:600,color:remittanceCurrency==="inr"?"#070f1c":C.t2,cursor:"pointer",transition:"all .2s"}}>₹</button>
-                      <button onClick={()=>setRemittanceCurrency("eur")} style={{flex:1,background:remittanceCurrency==="eur"?C.gold:"none",border:"none",borderRadius:4,padding:"0 8px",fontSize:10,fontWeight:600,color:remittanceCurrency==="eur"?"#070f1c":C.t2,cursor:"pointer",transition:"all .2s"}}>€</button>
+                  {/* ── Card B: NUMBERS ── */}
+                  {dir!=="opp"&&<div style={card}>
+                    {eyebrow("Numbers")}
+                    <div style={{display:"flex",flexDirection:"column",gap:16}}>
+                      {sliderRow(
+                        dir==="in2de"?"Current Indian CTC":"India CTC Offer",
+                        ctc,setCtc,
+                        dir==="in2de"?500000:1500000,dir==="in2de"?10000000:30000000,500000,
+                        `₹${(ctc/1e5).toFixed(0)}L / yr`,
+                        `≈ €${Math.round(ctc/rate/1000)}K/yr equivalent`,
+                        "ctc"
+                      )}
+                      {sliderRow(
+                        dir==="in2de"?"German gross offer":"Current German gross",
+                        gross,setGross,40000,150000,5000,
+                        `€${(gross/1000).toFixed(0)}K / yr`,
+                        `≈ ₹${(gross*rate/1e5).toFixed(1)}L/yr · net ~€${calcDE(gross,fam!=="single"?3:1,false).net.toLocaleString()}/mo`,
+                        "gross"
+                      )}
+                      {dir==="de2in"&&<div style={{fontSize:11,fontStyle:"italic",color:C.t3,marginTop:-8}}>₹{((ctc*0.7)/1e5).toFixed(1)}L likely fixed (70% of CTC). Variable pay is conditional.</div>}
+                      {/* India tax regime — inline in Numbers card */}
+                      <div>
+                        <div style={{fontSize:12,color:C.t3,marginBottom:7}}>India tax regime</div>
+                        <div style={{display:"flex",gap:6}}>
+                          {([["new","New regime (FY26)"],["old","Old regime"]] as ["new"|"old",string][]).map(([v,l])=>pill(l,inRegime===v,()=>setInRegime(v)))}
+                        </div>
+                        <div style={{fontSize:11,color:C.t3,marginTop:5}}>{inRegime==="old"?"Old regime: ₹50K std deduction + 80C PF. Better with HRA/home loan.":"New regime: ₹75K std deduction, zero-tax ≤ ₹12L. No 80C/HRA."}</div>
+                      </div>
                     </div>
-                  </span>
-                  <input
-                    className="currency-input"
-                    type="text"
-                    value={focusedInput === "remittance" ? tempInputValue : `${remittanceCurrency==="inr"?"₹":"€"}${formatCurrency(rem, remittanceCurrency)}/ month`}
-                    onFocus={() => { setFocusedInput("remittance"); setTempInputValue(String(rem)); }}
-                    onBlur={() => {
-                      setFocusedInput(null);
-                      let parsedValue = parseFloat(tempInputValue);
-                      if (isNaN(parsedValue)) parsedValue = 0;
-                      parsedValue = Math.max(0, Math.min(dir==="in2de"?300000:200000, parsedValue));
-                      setRem(parsedValue);
-                    }}
-                    onChange={e => setTempInputValue(e.target.value)}
-                    style={{color:C.gold,fontSize:14,fontWeight:600,letterSpacing:0,textTransform:"none",width:"auto",textAlign:"right"}}
-                  />
-                </div>
-                <div style={{padding:"0 8px",background:C.bgi,border:`1px solid ${C.b1}`,borderRadius:8}}>
-                  <input type="range" min={0} max={dir==="in2de"?300000:200000} step={5000} value={rem} onChange={e=>setRem(+e.target.value)} style={{backgroundImage:sliderBg(rem,0,dir==="in2de"?300000:200000)}}/>
-                </div>
-              </div>}
+                  </div>}
 
-              {/* Financial Commitments */}
-              <div>
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
-                  <span style={{display:"flex",alignItems:"center",gap:8,fontSize:11,fontWeight:600,letterSpacing:"1.8px",textTransform:"uppercase",color:C.t3}}>
-                    Monthly Financial Commitments
-                    <div style={{position:"relative",display:"flex",background:C.bgi,border:`1px solid ${C.b1}`,borderRadius:6,height:24}}>
-                      <button onClick={()=>setCommitmentsCurrency("inr")} style={{flex:1,background:commitmentsCurrency==="inr"?C.gold:"none",border:"none",borderRadius:4,padding:"0 8px",fontSize:10,fontWeight:600,color:commitmentsCurrency==="inr"?"#070f1c":C.t2,cursor:"pointer",transition:"all .2s"}}>₹</button>
-                      <button onClick={()=>setCommitmentsCurrency("eur")} style={{flex:1,background:commitmentsCurrency==="eur"?C.gold:"none",border:"none",borderRadius:4,padding:"0 8px",fontSize:10,fontWeight:600,color:commitmentsCurrency==="eur"?"#070f1c":C.t2,cursor:"pointer",transition:"all .2s"}}>€</button>
+                  {/* ── Card C: PROFILE ── */}
+                  <div style={card}>
+                    {eyebrow("Profile")}
+                    <div style={{display:"flex",gap:8,marginBottom:10}}>
+                      {([["single","Single"],["married","Married"],["married-kids","+ Kids"]] as const).map(([v,l])=>pill(l,fam===v,()=>setFam(v)))}
                     </div>
-                  </span>
-                  <input
-                    className="currency-input"
-                    type="text"
-                    value={focusedInput === "commitments" ? tempInputValue : `${commitmentsCurrency==="inr"?"₹":"€"}${formatCurrency(commitments, commitmentsCurrency)}/ month`}
-                    onFocus={() => { setFocusedInput("commitments"); setTempInputValue(String(commitments)); }}
-                    onBlur={() => {
-                      setFocusedInput(null);
-                      let parsedValue = parseFloat(tempInputValue);
-                      if (isNaN(parsedValue)) parsedValue = 0;
-                      parsedValue = Math.max(0, Math.min(500000, parsedValue));
-                      setCommitments(parsedValue);
-                    }}
-                    onChange={e => setTempInputValue(e.target.value)}
-                    style={{color:C.gold,fontSize:14,fontWeight:600,letterSpacing:0,textTransform:"none",width:"auto",textAlign:"right"}}
-                  />
-                </div>
-                <div style={{padding:"0 8px",background:C.bgi,border:`1px solid ${C.b1}`,borderRadius:8}}>
-                  <input type="range" min={0} max={500000} step={5000} value={commitments} onChange={e=>setCommitments(+e.target.value)} style={{backgroundImage:sliderBg(commitments,0,500000)}}/>
-                </div>
-              </div>
+                    {dir==="in2de"&&<div style={{fontSize:12,color:C.t3,marginBottom:10}}>Tax Class {tc} · all-in rate: <span style={{color:C.gold,fontWeight:600}}>{de_live.effRate}%</span></div>}
+                    {dir==="de2in"&&<div style={{fontSize:12,color:C.t2,marginBottom:10}}>🇩🇪 €{liveDeNet}/mo · {liveDeEff}% &nbsp;|&nbsp; 🇮🇳 ₹{liveInNet}/mo · {liveInEff}%</div>}
+                    {/* Church tax */}
+                    {(dir==="in2de"||dir==="opp")&&<div onClick={()=>setNoKirche(p=>!p)} style={{display:"flex",alignItems:"center",gap:10,padding:"10px 12px",background:C.bgi,border:`1px solid ${noKirche?C.grnL:C.b1}`,borderRadius:8,cursor:"pointer",transition:"border-color .2s"}}>
+                      <div style={{width:16,height:16,borderRadius:3,border:`2px solid ${noKirche?C.grn:C.t3}`,background:noKirche?C.grn:"none",flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",transition:"all .2s"}}>
+                        {noKirche&&<span style={{color:"#07111f",fontSize:10,fontWeight:700,lineHeight:1}}>✓</span>}
+                      </div>
+                      <div style={{flex:1}}>
+                        <span style={{fontSize:13,fontWeight:600,color:noKirche?C.grn:C.t1}}>{noKirche?"Opted out of church tax":"Opt out of church tax"}</span>
+                        <span style={{fontSize:12,color:noKirche?C.grn:C.gold,marginLeft:8,fontWeight:600}}>{noKirche?`+€${de_live.kirche}/mo saved`:`Save €${de_live.kirche}/mo`}</span>
+                      </div>
+                    </div>}
+                  </div>
 
-              {/* Savings in Advanced — only for in2de (opp shows it as primary input above) */}
-              {dir==="in2de"&&<div>
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
-                  <span style={{fontSize:11,fontWeight:600,letterSpacing:"1.8px",textTransform:"uppercase",color:C.t3}}>Savings to Bring</span>
-                  <span style={{color:C.gold,fontSize:14,fontWeight:600}}>€{(savings/1000).toFixed(0)}K</span>
-                </div>
-                <div style={{padding:"0 8px",background:C.bgi,border:`1px solid ${C.b1}`,borderRadius:8}}>
-                  <input type="range" min={0} max={50000} step={1000} value={savings} onChange={e=>setSavings(+e.target.value)} style={{backgroundImage:sliderBg(savings,0,50000)}}/>
-                </div>
-                <div style={{fontSize:11,color:C.t3,marginTop:4}}>Cash available before first salary lands</div>
-              </div>}
+                  {/* ── Advanced options (collapsible) ── */}
+                  <button onClick={()=>setAdvOpen(p=>!p)}
+                    style={{display:"flex",alignItems:"center",justifyContent:"space-between",width:"100%",background:"none",border:`1px solid ${C.b1}`,borderRadius:10,padding:"10px 16px",cursor:"pointer",fontFamily:"Outfit,sans-serif",color:C.t2,fontSize:13,fontWeight:600,transition:"border-color .2s"}}
+                    onMouseEnter={e=>(e.currentTarget.style.borderColor=C.gold)}
+                    onMouseLeave={e=>(e.currentTarget.style.borderColor=C.b1)}>
+                    <span>More options</span>
+                    <span style={{fontSize:11,display:"inline-block",transform:advOpen?"rotate(180deg)":"rotate(0deg)",transition:"transform .2s"}}>▾</span>
+                  </button>
 
-              {/* Lifestyle customiser — in2de (affects thresholds) */}
-              {dir==="in2de"&&<div style={{background:C.bgi,border:`1px solid ${C.b1}`,borderRadius:10,padding:16}}>
-                <div style={{fontSize:11,fontWeight:600,letterSpacing:"1.8px",textTransform:"uppercase",color:C.t3,marginBottom:4}}>Your Germany Lifestyle</div>
-                <div style={{fontSize:12,color:C.t3,marginBottom:12}}>Adjusts your Floor / Parity / Comfort thresholds.</div>
-                {/* Apartment */}
-                <div style={{marginBottom:12}}>
-                  <div style={{fontSize:11,color:C.t3,marginBottom:6}}>Apartment</div>
-                  <div style={{display:"flex",gap:6}}>
-                    {([["wg","Shared (WG)"],["1br","1 Bedroom"],["2br","2 Bedroom"]] as [string,string][]).map(([v,l])=>(
-                      <button key={v} onClick={()=>setIn2deLifestyle(p=>({...p,apartment:v}))} style={{flex:1,padding:"8px 4px",textAlign:"center",background:in2deLifestyle.apartment===v?C.gold:C.bg2,border:`1px solid ${in2deLifestyle.apartment===v?C.gold:C.b1}`,borderRadius:6,color:in2deLifestyle.apartment===v?"#070f1c":C.t2,fontFamily:"Outfit,sans-serif",fontSize:11,fontWeight:in2deLifestyle.apartment===v?700:500,cursor:"pointer"}}>{l}</button>
-                    ))}
-                  </div>
-                </div>
-                {/* Cooking */}
-                <div style={{marginBottom:12}}>
-                  <div style={{fontSize:11,color:C.t3,marginBottom:6}}>Eating</div>
-                  <div style={{display:"flex",gap:6}}>
-                    {([["cook","Cook at home"],["mix","Mix"],["convenience","Eat out often"]] as [string,string][]).map(([v,l])=>(
-                      <button key={v} onClick={()=>setIn2deLifestyle(p=>({...p,cooking:v}))} style={{flex:1,padding:"8px 4px",textAlign:"center",background:in2deLifestyle.cooking===v?C.gold:C.bg2,border:`1px solid ${in2deLifestyle.cooking===v?C.gold:C.b1}`,borderRadius:6,color:in2deLifestyle.cooking===v?"#070f1c":C.t2,fontFamily:"Outfit,sans-serif",fontSize:11,fontWeight:in2deLifestyle.cooking===v?700:500,cursor:"pointer"}}>{l}</button>
-                    ))}
-                  </div>
-                </div>
-                {/* Car + Gym */}
-                <div style={{display:"flex",gap:10}}>
-                  <div style={{flex:1}}>
-                    <div style={{fontSize:11,color:C.t3,marginBottom:6}}>Car</div>
-                    <div style={{display:"flex",gap:6}}>
-                      {([["false","No car"],["true","Own car"]] as [string,string][]).map(([v,l])=>(
-                        <button key={v} onClick={()=>setIn2deLifestyle(p=>({...p,car:v==="true"}))} style={{flex:1,padding:"8px 4px",textAlign:"center",background:(in2deLifestyle.car?"true":"false")===v?C.gold:C.bg2,border:`1px solid ${(in2deLifestyle.car?"true":"false")===v?C.gold:C.b1}`,borderRadius:6,color:(in2deLifestyle.car?"true":"false")===v?"#070f1c":C.t2,fontFamily:"Outfit,sans-serif",fontSize:11,fontWeight:(in2deLifestyle.car?"true":"false")===v?700:500,cursor:"pointer"}}>{l}</button>
-                      ))}
+                  {advOpen&&<div style={{...card,gap:16,display:"flex",flexDirection:"column"}}>
+                    {/* Remittance */}
+                    {dir!=="opp"&&<div>
+                      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
+                        <span style={{fontSize:13,color:C.t2,fontWeight:500,display:"flex",alignItems:"center",gap:8}}>
+                          {dir==="in2de"?"Remittance to India":"Transfer to Germany"}
+                          <div style={{display:"flex",background:C.bgi,border:`1px solid ${C.b1}`,borderRadius:5,height:22}}>
+                            <button onClick={()=>setRemittanceCurrency("inr")} style={{background:remittanceCurrency==="inr"?C.gold:"none",border:"none",borderRadius:3,padding:"0 7px",fontSize:10,fontWeight:600,color:remittanceCurrency==="inr"?"#070f1c":C.t2,cursor:"pointer"}}>₹</button>
+                            <button onClick={()=>setRemittanceCurrency("eur")} style={{background:remittanceCurrency==="eur"?C.gold:"none",border:"none",borderRadius:3,padding:"0 7px",fontSize:10,fontWeight:600,color:remittanceCurrency==="eur"?"#070f1c":C.t2,cursor:"pointer"}}>€</button>
+                          </div>
+                        </span>
+                        <input className="currency-input" type="text"
+                          value={focusedInput==="remittance"?tempInputValue:`${remittanceCurrency==="inr"?"₹":"€"}${formatCurrency(rem,remittanceCurrency)}/ mo`}
+                          onFocus={()=>{setFocusedInput("remittance");setTempInputValue(String(rem));}}
+                          onBlur={()=>{setFocusedInput(null);let p=parseFloat(tempInputValue);if(isNaN(p))p=0;setRem(Math.max(0,Math.min(dir==="in2de"?300000:200000,p)));}}
+                          onChange={e=>setTempInputValue(e.target.value)}
+                          style={{color:C.gold,fontSize:14,fontWeight:600,letterSpacing:0,textTransform:"none" as const,width:"auto",textAlign:"right",background:"none",border:"none",outline:"none",fontFamily:"Outfit,sans-serif"}}/>
+                      </div>
+                      <div style={{padding:"0 6px",background:C.bgi,border:`1px solid ${C.b1}`,borderRadius:8}}>
+                        <input type="range" min={0} max={dir==="in2de"?300000:200000} step={5000} value={rem} onChange={e=>setRem(+e.target.value)} style={{backgroundImage:sliderBg(rem,0,dir==="in2de"?300000:200000)}}/>
+                      </div>
+                    </div>}
+                    {/* Commitments */}
+                    <div>
+                      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
+                        <span style={{fontSize:13,color:C.t2,fontWeight:500,display:"flex",alignItems:"center",gap:8}}>
+                          Monthly commitments
+                          <div style={{display:"flex",background:C.bgi,border:`1px solid ${C.b1}`,borderRadius:5,height:22}}>
+                            <button onClick={()=>setCommitmentsCurrency("inr")} style={{background:commitmentsCurrency==="inr"?C.gold:"none",border:"none",borderRadius:3,padding:"0 7px",fontSize:10,fontWeight:600,color:commitmentsCurrency==="inr"?"#070f1c":C.t2,cursor:"pointer"}}>₹</button>
+                            <button onClick={()=>setCommitmentsCurrency("eur")} style={{background:commitmentsCurrency==="eur"?C.gold:"none",border:"none",borderRadius:3,padding:"0 7px",fontSize:10,fontWeight:600,color:commitmentsCurrency==="eur"?"#070f1c":C.t2,cursor:"pointer"}}>€</button>
+                          </div>
+                        </span>
+                        <input className="currency-input" type="text"
+                          value={focusedInput==="commitments"?tempInputValue:`${commitmentsCurrency==="inr"?"₹":"€"}${formatCurrency(commitments,commitmentsCurrency)}/ mo`}
+                          onFocus={()=>{setFocusedInput("commitments");setTempInputValue(String(commitments));}}
+                          onBlur={()=>{setFocusedInput(null);let p=parseFloat(tempInputValue);if(isNaN(p))p=0;setCommitments(Math.max(0,Math.min(500000,p)));}}
+                          onChange={e=>setTempInputValue(e.target.value)}
+                          style={{color:C.gold,fontSize:14,fontWeight:600,letterSpacing:0,textTransform:"none" as const,width:"auto",textAlign:"right",background:"none",border:"none",outline:"none",fontFamily:"Outfit,sans-serif"}}/>
+                      </div>
+                      <div style={{padding:"0 6px",background:C.bgi,border:`1px solid ${C.b1}`,borderRadius:8}}>
+                        <input type="range" min={0} max={500000} step={5000} value={commitments} onChange={e=>setCommitments(+e.target.value)} style={{backgroundImage:sliderBg(commitments,0,500000)}}/>
+                      </div>
                     </div>
-                  </div>
-                  <div style={{flex:1}}>
-                    <div style={{fontSize:11,color:C.t3,marginBottom:6}}>Gym</div>
-                    <div style={{display:"flex",gap:6}}>
-                      {([["none","None"],["basic","Basic"],["premium","Premium"]] as [string,string][]).map(([v,l])=>(
-                        <button key={v} onClick={()=>setIn2deLifestyle(p=>({...p,gym:v}))} style={{flex:1,padding:"8px 4px",textAlign:"center",background:in2deLifestyle.gym===v?C.gold:C.bg2,border:`1px solid ${in2deLifestyle.gym===v?C.gold:C.b1}`,borderRadius:6,color:in2deLifestyle.gym===v?"#070f1c":C.t2,fontFamily:"Outfit,sans-serif",fontSize:11,fontWeight:in2deLifestyle.gym===v?700:500,cursor:"pointer"}}>{l}</button>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </div>}
+                    {/* Savings for in2de */}
+                    {dir==="in2de"&&sliderRow("Savings to bring",savings,setSavings,0,50000,1000,`€${(savings/1000).toFixed(0)}K`,undefined,"savings")}
+                    {/* Lifestyle for in2de */}
+                    {dir==="in2de"&&<div>
+                      <div style={{fontSize:12,color:C.t3,marginBottom:10}}>Germany lifestyle <span style={{fontStyle:"italic"}}>(adjusts thresholds)</span></div>
+                      <div style={{display:"flex",flexDirection:"column",gap:10}}>
+                        <div>
+                          <div style={{fontSize:11,color:C.t3,marginBottom:5}}>Apartment</div>
+                          <div style={{display:"flex",gap:6}}>{([["wg","Shared (WG)"],["1br","1 BR"],["2br","2 BR"]] as [string,string][]).map(([v,l])=>pill(l,in2deLifestyle.apartment===v,()=>setIn2deLifestyle(p=>({...p,apartment:v}))))}</div>
+                        </div>
+                        <div>
+                          <div style={{fontSize:11,color:C.t3,marginBottom:5}}>Eating</div>
+                          <div style={{display:"flex",gap:6}}>{([["cook","Cook"],["mix","Mix"],["convenience","Eat out"]] as [string,string][]).map(([v,l])=>pill(l,in2deLifestyle.cooking===v,()=>setIn2deLifestyle(p=>({...p,cooking:v}))))}</div>
+                        </div>
+                        <div style={{display:"flex",gap:10}}>
+                          <div style={{flex:1}}>
+                            <div style={{fontSize:11,color:C.t3,marginBottom:5}}>Car</div>
+                            <div style={{display:"flex",gap:6}}>{([["false","No car"],["true","Own car"]] as [string,string][]).map(([v,l])=>pill(l,(in2deLifestyle.car?"true":"false")===v,()=>setIn2deLifestyle(p=>({...p,car:v==="true"}))))}</div>
+                          </div>
+                          <div style={{flex:1}}>
+                            <div style={{fontSize:11,color:C.t3,marginBottom:5}}>Gym</div>
+                            <div style={{display:"flex",gap:6}}>{([["none","None"],["basic","Basic"],["premium","Premium"]] as [string,string][]).map(([v,l])=>pill(l,in2deLifestyle.gym===v,()=>setIn2deLifestyle(p=>({...p,gym:v}))))}</div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>}
+                    {/* Lifestyle for opp */}
+                    {dir==="opp"&&<div>
+                      <div style={{fontSize:12,color:C.t3,marginBottom:10}}>Germany lifestyle</div>
+                      <div style={{display:"flex",flexDirection:"column",gap:10}}>
+                        <div>
+                          <div style={{fontSize:11,color:C.t3,marginBottom:5}}>Apartment</div>
+                          <div style={{display:"flex",gap:6}}>{([["wg","Shared (WG)"],["1br","1 BR"],["2br","2 BR"]] as [string,string][]).map(([v,l])=>pill(l,oppLifestyle.apartment===v,()=>updateOppLifestyle("apartment",v)))}</div>
+                        </div>
+                        <div>
+                          <div style={{fontSize:11,color:C.t3,marginBottom:5}}>Eating</div>
+                          <div style={{display:"flex",gap:6}}>{([["cook","Cook"],["mix","Mix"],["eat-out","Eat out"]] as [string,string][]).map(([v,l])=>pill(l,oppLifestyle.cooking===v,()=>updateOppLifestyle("cooking",v)))}</div>
+                        </div>
+                        <div style={{display:"flex",gap:10}}>
+                          <div style={{flex:1}}>
+                            <div style={{fontSize:11,color:C.t3,marginBottom:5}}>Car</div>
+                            <div style={{display:"flex",gap:6}}>{([["false","No car"],["true","Own car"]] as [string,string][]).map(([v,l])=>pill(l,(oppLifestyle.car?"true":"false")===v,()=>updateOppLifestyle("car",v==="true")))}</div>
+                          </div>
+                          <div style={{flex:1}}>
+                            <div style={{fontSize:11,color:C.t3,marginBottom:5}}>Gym</div>
+                            <div style={{display:"flex",gap:6}}>{([["none","None"],["basic","Basic"],["premium","Premium"]] as [string,string][]).map(([v,l])=>pill(l,oppLifestyle.gym===v,()=>updateOppLifestyle("gym",v)))}</div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>}
+                  </div>}
 
-              {/* Lifestyle customiser — opp only */}
-              {dir==="opp"&&<div style={{background:C.bgi,border:`1px solid ${C.b1}`,borderRadius:10,padding:16}}>
-                <div style={{fontSize:11,fontWeight:600,letterSpacing:"1.8px",textTransform:"uppercase",color:C.t3,marginBottom:14}}>Lifestyle in Germany</div>
-                {/* Apartment */}
-                <div style={{marginBottom:12}}>
-                  <div style={{fontSize:11,color:C.t3,marginBottom:6}}>Apartment</div>
-                  <div style={{display:"flex",gap:6}}>
-                    {([["wg","Shared (WG)"],["1br","1 Bedroom"],["2br","2 Bedroom"]] as [string,string][]).map(([v,l])=>(
-                      <button key={v} onClick={()=>updateOppLifestyle("apartment",v)} style={{flex:1,padding:"8px 4px",textAlign:"center",background:oppLifestyle.apartment===v?C.gold:C.bg2,border:`1px solid ${oppLifestyle.apartment===v?C.gold:C.b1}`,borderRadius:6,color:oppLifestyle.apartment===v?"#070f1c":C.t2,fontFamily:"Outfit,sans-serif",fontSize:11,fontWeight:oppLifestyle.apartment===v?700:500,cursor:"pointer"}}>{l}</button>
-                    ))}
+                  {/* CTA */}
+                  <div style={{background:C.bg2,border:`1px solid ${C.b1}`,borderRadius:12,padding:"16px 18px"}}>
+                    <button onClick={handleRun} disabled={loading} style={{width:"100%",padding:"16px 32px",background:C.gold,color:"#070f1c",border:"none",borderRadius:10,fontFamily:"Outfit,sans-serif",fontSize:16,fontWeight:700,cursor:loading?"not-allowed":"pointer",opacity:loading?.6:1,boxShadow:"0 4px 20px rgba(232,160,32,.3)"}}>
+                      {loading?loadMsg:dir==="opp"?"Calculate My Runway →":"Show My Full Package →"}
+                    </button>
+                    <p style={{textAlign:"center",fontSize:11,color:C.t3,margin:"8px 0 0"}}>{dir==="opp"?"Instant · Nothing stored":"~5 seconds · AI-powered · Nothing stored"}</p>
                   </div>
-                </div>
-                {/* Cooking */}
-                <div style={{marginBottom:12}}>
-                  <div style={{fontSize:11,color:C.t3,marginBottom:6}}>Eating</div>
-                  <div style={{display:"flex",gap:6}}>
-                    {([["cook","Cook at home"],["mix","Mix"],["eat-out","Eat out often"]] as [string,string][]).map(([v,l])=>(
-                      <button key={v} onClick={()=>updateOppLifestyle("cooking",v)} style={{flex:1,padding:"8px 4px",textAlign:"center",background:oppLifestyle.cooking===v?C.gold:C.bg2,border:`1px solid ${oppLifestyle.cooking===v?C.gold:C.b1}`,borderRadius:6,color:oppLifestyle.cooking===v?"#070f1c":C.t2,fontFamily:"Outfit,sans-serif",fontSize:11,fontWeight:oppLifestyle.cooking===v?700:500,cursor:"pointer"}}>{l}</button>
-                    ))}
-                  </div>
-                </div>
-                {/* Car + Gym */}
-                <div style={{display:"flex",gap:10}}>
-                  <div style={{flex:1}}>
-                    <div style={{fontSize:11,color:C.t3,marginBottom:6}}>Car</div>
-                    <div style={{display:"flex",gap:6}}>
-                      {([["false","No car"],["true","Own car"]] as [string,string][]).map(([v,l])=>(
-                        <button key={v} onClick={()=>updateOppLifestyle("car",v==="true")} style={{flex:1,padding:"8px 4px",textAlign:"center",background:(oppLifestyle.car?"true":"false")===v?C.gold:C.bg2,border:`1px solid ${(oppLifestyle.car?"true":"false")===v?C.gold:C.b1}`,borderRadius:6,color:(oppLifestyle.car?"true":"false")===v?"#070f1c":C.t2,fontFamily:"Outfit,sans-serif",fontSize:11,fontWeight:(oppLifestyle.car?"true":"false")===v?700:500,cursor:"pointer"}}>{l}</button>
-                      ))}
-                    </div>
-                  </div>
-                  <div style={{flex:1}}>
-                    <div style={{fontSize:11,color:C.t3,marginBottom:6}}>Gym</div>
-                    <div style={{display:"flex",gap:6}}>
-                      {([["none","None"],["basic","Basic"],["premium","Premium"]] as [string,string][]).map(([v,l])=>(
-                        <button key={v} onClick={()=>updateOppLifestyle("gym",v)} style={{flex:1,padding:"8px 4px",textAlign:"center",background:oppLifestyle.gym===v?C.gold:C.bg2,border:`1px solid ${oppLifestyle.gym===v?C.gold:C.b1}`,borderRadius:6,color:oppLifestyle.gym===v?"#070f1c":C.t2,fontFamily:"Outfit,sans-serif",fontSize:11,fontWeight:oppLifestyle.gym===v?700:500,cursor:"pointer"}}>{l}</button>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </div>}
-              </>}
 
-            </div>
-            <div style={{padding:"16px 28px 4px",background:C.bg2,borderTop:`1px solid ${C.b0}`,borderBottomLeftRadius:20,borderBottomRightRadius:20}}>
-              <button onClick={handleRun} disabled={loading} style={{width:"100%",padding:"17px 32px",background:C.gold,color:"#070f1c",border:"none",borderRadius:14,fontFamily:"Outfit,sans-serif",fontSize:16,fontWeight:700,cursor:loading?"not-allowed":"pointer",opacity:loading?.6:1,boxShadow:"0 4px 20px rgba(232,160,32,.3)"}}>
-                {loading?loadMsg:dir==="opp"?"Calculate My Runway →":"Show My Full Package →"}
-              </button>
-              <p style={{textAlign:"center",fontSize:11,color:C.t3,margin:"8px 0 16px"}}>{dir==="opp"?"Instant · Nothing stored":"~5 seconds · AI-powered · Nothing stored"}</p>
-            </div>
+                </div>
+              );
+            })()}
           </div>
         </div>
       </section>

@@ -1913,89 +1913,120 @@ export default function App() {
                     <span style={{fontSize:12,color:advOpen?C.gold:C.t3,display:"inline-block",transform:advOpen?"rotate(180deg)":"rotate(0deg)",transition:"transform .18s"}}>▾</span>
                   </button>
 
-                  {advOpen&&<div style={{display:"flex",flexDirection:"column",gap:0}}>
-                    {dir!=="opp"&&<>
-                      <div style={{marginBottom:20}}>
-                        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-end",marginBottom:2}}>
-                          <span style={{fontSize:13,color:C.t2,display:"flex",alignItems:"center",gap:6}}>
-                            {dir==="in2de"?"Remittance home":"Transfer to DE"}
-                            <span style={{display:"flex",background:"rgba(255,255,255,.06)",borderRadius:4,overflow:"hidden"}}>
-                              {(["inr","eur"] as const).map(c=><button key={c} onClick={()=>setRemittanceCurrency(c)} style={{background:remittanceCurrency===c?"rgba(245,158,11,.7)":"none",border:"none",padding:"1px 6px",fontSize:10,fontWeight:600,color:remittanceCurrency===c?"#080c14":C.t3,cursor:"pointer"}}>{c==="inr"?"₹":"€"}</button>)}
-                            </span>
-                          </span>
-                          <input className="currency-input" type="text"
-                            value={focusedInput==="remittance"?tempInputValue:`${remittanceCurrency==="inr"?"₹":"€"}${formatCurrency(rem,remittanceCurrency)}/mo`}
-                            onFocus={()=>{setFocusedInput("remittance");setTempInputValue(String(rem));}}
-                            onBlur={()=>{setFocusedInput(null);let p=parseFloat(tempInputValue);if(isNaN(p))p=0;setRem(Math.max(0,Math.min(dir==="in2de"?300000:200000,p)));}}
-                            onChange={e=>setTempInputValue(e.target.value)}
-                            style={{color:C.gold,fontSize:15,fontWeight:700,background:"none",border:"none",borderBottom:"1px solid rgba(255,255,255,.1)",outline:"none",fontFamily:"Outfit,sans-serif",padding:"0 0 3px",width:110,textAlign:"right"}}/>
-                        </div>
-                        <input type="range" min={0} max={dir==="in2de"?300000:200000} step={5000} value={rem} onChange={e=>setRem(+e.target.value)} style={{backgroundImage:sliderBg(rem,0,dir==="in2de"?300000:200000)}}/>
-                      </div>
-                      <div style={{marginBottom:20}}>
-                        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-end",marginBottom:2}}>
-                          <span style={{fontSize:13,color:C.t2,display:"flex",alignItems:"center",gap:6}}>
-                            Monthly commitments
-                            <span style={{display:"flex",background:"rgba(255,255,255,.06)",borderRadius:4,overflow:"hidden"}}>
-                              {(["inr","eur"] as const).map(c=><button key={c} onClick={()=>setCommitmentsCurrency(c)} style={{background:commitmentsCurrency===c?"rgba(245,158,11,.7)":"none",border:"none",padding:"1px 6px",fontSize:10,fontWeight:600,color:commitmentsCurrency===c?"#080c14":C.t3,cursor:"pointer"}}>{c==="inr"?"₹":"€"}</button>)}
-                            </span>
-                          </span>
-                          <input className="currency-input" type="text"
-                            value={focusedInput==="commitments"?tempInputValue:`${commitmentsCurrency==="inr"?"₹":"€"}${formatCurrency(commitments,commitmentsCurrency)}/mo`}
-                            onFocus={()=>{setFocusedInput("commitments");setTempInputValue(String(commitments));}}
-                            onBlur={()=>{setFocusedInput(null);let p=parseFloat(tempInputValue);if(isNaN(p))p=0;setCommitments(Math.max(0,Math.min(500000,p)));}}
-                            onChange={e=>setTempInputValue(e.target.value)}
-                            style={{color:C.gold,fontSize:15,fontWeight:700,background:"none",border:"none",borderBottom:"1px solid rgba(255,255,255,.1)",outline:"none",fontFamily:"Outfit,sans-serif",padding:"0 0 3px",width:110,textAlign:"right"}}/>
-                        </div>
-                        <input type="range" min={0} max={500000} step={5000} value={commitments} onChange={e=>setCommitments(+e.target.value)} style={{backgroundImage:sliderBg(commitments,0,500000)}}/>
-                        {sub("Home loan EMI, insurance premiums, family support — anything that leaves your account monthly regardless of location.")}
-                      </div>
-                    </>}
-                    {dir==="in2de"&&<>
-                      <div style={{marginBottom:20}}>
-                        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-end",marginBottom:2}}>
-                          <span style={{fontSize:13,color:C.t2}}>Savings to bring (€)</span>
-                          <span style={{fontSize:15,fontWeight:700,color:C.gold}}>€{(savings/1000).toFixed(0)}K</span>
-                        </div>
-                        <input type="range" min={0} max={50000} step={1000} value={savings} onChange={e=>setSavings(+e.target.value)} style={{backgroundImage:sliderBg(savings,0,50000)}}/>
-                        {sub("Cash you can bring before your first salary. Covers deposit (2–3mo rent), setup costs, and the gap month.")}
-                      </div>
-                    </>}
-                    {/* Lifestyle */}
-                    {(dir==="in2de"||dir==="opp")&&<div>
-                      {dir==="in2de"&&<div style={{marginBottom:16}}>
-                        <div style={{fontSize:13,color:C.t2,marginBottom:6}}>Your India tax regime</div>
-                        <div style={{display:"flex",gap:6,marginBottom:6}}>
-                          {([["new","New FY26"],["old","Old regime"]] as ["new"|"old",string][]).map(([v,l])=>pill(l,inRegime===v,()=>setInRegime(v)))}
-                        </div>
-                        {sub("Used only to calculate your current Indian take-home for the parity comparison. Most people leaving India are on the new regime.")}
-                      </div>}
-                      <div style={{fontSize:12,color:C.t3,marginBottom:10}}>Germany lifestyle <span style={{fontStyle:"italic"}}>(adjusts your cost thresholds)</span></div>
-                      {[
-                        {lbl:"Apartment",opts:[["wg","Shared WG"],["1br","1 Bedroom"],["2br","2 Bedroom"]] as [string,string][],get:()=>dir==="in2de"?in2deLifestyle.apartment:oppLifestyle.apartment,set:(v:string)=>dir==="in2de"?setIn2deLifestyle(p=>({...p,apartment:v})):updateOppLifestyle("apartment",v)},
-                        {lbl:"Eating",opts:[["cook","Cook mostly"],["mix","Mix"],dir==="in2de"?["convenience","Eat out"]:["eat-out","Eat out"]] as [string,string][],get:()=>dir==="in2de"?in2deLifestyle.cooking:oppLifestyle.cooking,set:(v:string)=>dir==="in2de"?setIn2deLifestyle(p=>({...p,cooking:v})):updateOppLifestyle("cooking",v)},
-                      ].map(row=>(
-                        <div key={row.lbl} style={{marginBottom:10}}>
-                          <div style={{fontSize:11,color:C.t3,marginBottom:5}}>{row.lbl}</div>
-                          <div style={{display:"flex",gap:6}}>{row.opts.map(([v,l])=>pill(l,row.get()===v,()=>row.set(v)))}</div>
-                        </div>
-                      ))}
-                      <div style={{display:"flex",gap:10,marginBottom:4}}>
-                        <div style={{flex:1}}>
-                          <div style={{fontSize:11,color:C.t3,marginBottom:5}}>Car</div>
-                          <div style={{display:"flex",gap:6}}>
-                            {([["false","No car"],["true","Own car"]] as [string,string][]).map(([v,l])=>pill(l,((dir==="in2de"?in2deLifestyle:oppLifestyle).car?"true":"false")===v,()=>dir==="in2de"?setIn2deLifestyle(p=>({...p,car:v==="true"})):updateOppLifestyle("car",v==="true")))}
+                  {advOpen&&(()=>{
+                    const ls=dir==="in2de"?in2deLifestyle:oppLifestyle;
+                    const setLs=(k:string,v:string|boolean)=>dir==="in2de"?setIn2deLifestyle(p=>({...p,[k]:v})):updateOppLifestyle(k,v);
+                    const chipPill=(label:string,active:boolean,onClick:()=>void)=>(
+                      <button onClick={onClick} style={{padding:"7px 10px",borderRadius:6,border:`1px solid ${active?"rgba(245,158,11,.7)":"rgba(255,255,255,.1)"}`,background:active?"rgba(245,158,11,.12)":"transparent",color:active?C.gold:C.t3,fontFamily:"Outfit,sans-serif",fontSize:12,fontWeight:active?600:400,cursor:"pointer",whiteSpace:"nowrap" as const,transition:"all .15s"}}>
+                        {label}
+                      </button>
+                    );
+                    const moneyChip=(label:string,value:string,expandKey:string,children:React.ReactNode)=>{
+                      const open=focusedInput===expandKey;
+                      return (
+                        <div style={{background:"rgba(255,255,255,.04)",borderRadius:8,padding:"10px 12px",border:`1px solid ${open?"rgba(245,158,11,.3)":"rgba(255,255,255,.07)"}`,transition:"border-color .15s"}}>
+                          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",cursor:"pointer"}} onClick={()=>setFocusedInput(open?null:expandKey)}>
+                            <span style={{fontSize:12,color:C.t2}}>{label}</span>
+                            <div style={{display:"flex",alignItems:"center",gap:6}}>
+                              <span style={{fontSize:13,fontWeight:700,color:open?C.gold:C.t1}}>{value}</span>
+                              <span style={{fontSize:10,color:C.t3,transform:open?"rotate(180deg)":"none",transition:"transform .15s",display:"inline-block"}}>▾</span>
+                            </div>
                           </div>
+                          {open&&<div style={{marginTop:10}}>{children}</div>}
                         </div>
-                        <div style={{flex:1}}>
-                          <div style={{fontSize:11,color:C.t3,marginBottom:5}}>Gym</div>
-                          <div style={{display:"flex",gap:6}}>
-                            {([["none","None"],["basic","Basic"],["premium","Premium"]] as [string,string][]).map(([v,l])=>pill(l,(dir==="in2de"?in2deLifestyle:oppLifestyle).gym===v,()=>dir==="in2de"?setIn2deLifestyle(p=>({...p,gym:v})):updateOppLifestyle("gym",v)))}
+                      );
+                    };
+                    return (
+                      <div style={{display:"flex",flexDirection:"column",gap:16,paddingTop:4}}>
+
+                        {/* ── ① MONEY FLOWS ── */}
+                        {dir!=="opp"&&<div>
+                          <div style={{fontSize:10,fontWeight:700,letterSpacing:"2px",textTransform:"uppercase" as const,color:C.t3,marginBottom:8}}>Money flows</div>
+                          <div style={{display:"flex",flexDirection:"column",gap:8}}>
+                            {moneyChip(
+                              dir==="in2de"?"Monthly remittance to India":"Monthly transfer to Germany",
+                              `${remittanceCurrency==="inr"?"₹":"€"}${formatCurrency(rem,remittanceCurrency)}/mo`,
+                              "remittance",
+                              <>
+                                <div style={{display:"flex",gap:4,marginBottom:8}}>
+                                  {(["inr","eur"] as const).map(c=><button key={c} onClick={()=>setRemittanceCurrency(c)} style={{padding:"3px 10px",borderRadius:4,border:`1px solid ${remittanceCurrency===c?"rgba(245,158,11,.6)":"rgba(255,255,255,.1)"}`,background:remittanceCurrency===c?"rgba(245,158,11,.12)":"transparent",color:remittanceCurrency===c?C.gold:C.t3,fontSize:11,fontWeight:600,cursor:"pointer"}}>{c==="inr"?"₹ INR":"€ EUR"}</button>)}
+                                </div>
+                                <input type="range" min={0} max={dir==="in2de"?300000:200000} step={5000} value={rem} onChange={e=>setRem(+e.target.value)} style={{backgroundImage:sliderBg(rem,0,dir==="in2de"?300000:200000)}}/>
+                                <div style={{fontSize:11,color:C.t3,marginTop:4}}>Money sent home every month — reduces your effective surplus in Germany.</div>
+                              </>
+                            )}
+                            {moneyChip(
+                              "Fixed monthly commitments",
+                              `${commitmentsCurrency==="inr"?"₹":"€"}${formatCurrency(commitments,commitmentsCurrency)}/mo`,
+                              "commitments",
+                              <>
+                                <div style={{display:"flex",gap:4,marginBottom:8}}>
+                                  {(["inr","eur"] as const).map(c=><button key={c} onClick={()=>setCommitmentsCurrency(c)} style={{padding:"3px 10px",borderRadius:4,border:`1px solid ${commitmentsCurrency===c?"rgba(245,158,11,.6)":"rgba(255,255,255,.1)"}`,background:commitmentsCurrency===c?"rgba(245,158,11,.12)":"transparent",color:commitmentsCurrency===c?C.gold:C.t3,fontSize:11,fontWeight:600,cursor:"pointer"}}>{c==="inr"?"₹ INR":"€ EUR"}</button>)}
+                                </div>
+                                <input type="range" min={0} max={500000} step={5000} value={commitments} onChange={e=>setCommitments(+e.target.value)} style={{backgroundImage:sliderBg(commitments,0,500000)}}/>
+                                <div style={{fontSize:11,color:C.t3,marginTop:4}}>Home loan EMI, insurance, family support — anything leaving your account regardless of where you live.</div>
+                              </>
+                            )}
+                            {dir==="in2de"&&moneyChip(
+                              "Savings to bring",
+                              `€${(savings/1000).toFixed(0)}K`,
+                              "savings-adv",
+                              <>
+                                <input type="range" min={0} max={50000} step={1000} value={savings} onChange={e=>setSavings(+e.target.value)} style={{backgroundImage:sliderBg(savings,0,50000)}}/>
+                                <div style={{fontSize:11,color:C.t3,marginTop:4}}>Covers apartment deposit (2–3mo rent), IKEA run, and the gap before first payslip.</div>
+                              </>
+                            )}
                           </div>
-                        </div>
+                        </div>}
+
+                        {/* ── ② GERMANY LIFESTYLE ── */}
+                        {(dir==="in2de"||dir==="opp")&&<div>
+                          <div style={{fontSize:10,fontWeight:700,letterSpacing:"2px",textTransform:"uppercase" as const,color:C.t3,marginBottom:4}}>Germany lifestyle</div>
+                          <div style={{fontSize:11,color:C.t3,marginBottom:10}}>Adjusts your Floor / Parity / Comfort thresholds.</div>
+                          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+                            {/* Apartment */}
+                            <div style={{background:"rgba(255,255,255,.03)",borderRadius:8,padding:"10px 12px"}}>
+                              <div style={{fontSize:10,color:C.t3,marginBottom:6,fontWeight:600}}>🏠 Apartment</div>
+                              <div style={{display:"flex",flexDirection:"column" as const,gap:4}}>
+                                {([["wg","Shared (WG)"],["1br","1 Bedroom"],["2br","2 Bedroom"]] as [string,string][]).map(([v,l])=>chipPill(l,ls.apartment===v,()=>setLs("apartment",v)))}
+                              </div>
+                            </div>
+                            {/* Eating */}
+                            <div style={{background:"rgba(255,255,255,.03)",borderRadius:8,padding:"10px 12px"}}>
+                              <div style={{fontSize:10,color:C.t3,marginBottom:6,fontWeight:600}}>🍽 Eating</div>
+                              <div style={{display:"flex",flexDirection:"column" as const,gap:4}}>
+                                {([["cook","Cook mostly"],["mix","Mix"],[(dir==="in2de"?"convenience":"eat-out"),"Eat out often"]] as [string,string][]).map(([v,l])=>chipPill(l,ls.cooking===v,()=>setLs("cooking",v)))}
+                              </div>
+                            </div>
+                            {/* Car */}
+                            <div style={{background:"rgba(255,255,255,.03)",borderRadius:8,padding:"10px 12px"}}>
+                              <div style={{fontSize:10,color:C.t3,marginBottom:6,fontWeight:600}}>🚗 Car</div>
+                              <div style={{display:"flex",flexDirection:"column" as const,gap:4}}>
+                                {([["false","No car"],["true","Own a car"]] as [string,string][]).map(([v,l])=>chipPill(l,(ls.car?"true":"false")===v,()=>setLs("car",v==="true")))}
+                              </div>
+                            </div>
+                            {/* Gym */}
+                            <div style={{background:"rgba(255,255,255,.03)",borderRadius:8,padding:"10px 12px"}}>
+                              <div style={{fontSize:10,color:C.t3,marginBottom:6,fontWeight:600}}>💪 Gym</div>
+                              <div style={{display:"flex",flexDirection:"column" as const,gap:4}}>
+                                {([["none","No gym"],["basic","Basic (€40/mo)"],["premium","Premium (€75/mo)"]] as [string,string][]).map(([v,l])=>chipPill(l,ls.gym===v,()=>setLs("gym",v)))}
+                              </div>
+                            </div>
+                          </div>
+                        </div>}
+
+                        {/* ── ③ INDIA TAX ASSUMPTION (in2de only) ── */}
+                        {dir==="in2de"&&<div style={{borderTop:"1px solid rgba(255,255,255,.06)",paddingTop:14}}>
+                          <div style={{fontSize:10,fontWeight:700,letterSpacing:"2px",textTransform:"uppercase" as const,color:C.t3,marginBottom:8}}>India tax assumption</div>
+                          <div style={{display:"flex",gap:6,marginBottom:6}}>
+                            {([["new","New regime FY26"],["old","Old regime"]] as ["new"|"old",string][]).map(([v,l])=>chipPill(l,inRegime===v,()=>setInRegime(v)))}
+                          </div>
+                          <div style={{fontSize:11,color:C.t3,lineHeight:1.5}}>Used only for the parity baseline — how much you'd need in Germany to match your India take-home. Most people leaving India are on the new regime.</div>
+                        </div>}
+
                       </div>
-                    </div>}
-                  </div>}
+                    );
+                  })()}
 
                   {divider()}
 

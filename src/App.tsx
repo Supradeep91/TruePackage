@@ -1834,6 +1834,15 @@ export default function App() {
                     </div>
                     <input type="range" min={2000} max={30000} step={500} value={savings} onChange={e=>setSavings(+e.target.value)} style={{backgroundImage:sliderBg(savings,2000,30000)}}/>
                     {sub(`€${(savings/1000).toFixed(0)}K in ${deCity} covers roughly ${Math.floor(savings/2200)}–${Math.ceil(savings/1800)} months of basic living.`)}
+                    <div onClick={()=>setNoKirche(p=>!p)} style={{display:"flex",alignItems:"flex-start",gap:12,cursor:"pointer",padding:"14px 0 2px"}}>
+                      <div style={{width:18,height:18,borderRadius:4,border:`2px solid ${noKirche?C.grn:"rgba(255,255,255,.2)"}`,background:noKirche?C.grn:"transparent",flexShrink:0,marginTop:2,display:"flex",alignItems:"center",justifyContent:"center",transition:"all .15s"}}>
+                        {noKirche&&<span style={{color:"#080c14",fontSize:11,fontWeight:700}}>✓</span>}
+                      </div>
+                      <div>
+                        <div style={{fontSize:13,fontWeight:600,color:noKirche?C.grn:C.t2}}>Opt out of church tax</div>
+                        <div style={{fontSize:11,color:C.t3,marginTop:3,lineHeight:1.5}}>{noKirche?`Saves €${de_live.kirche}/mo once employed — declare "konfessionslos" at Anmeldung.`:`Saves €${de_live.kirche}/mo once you have a salary. One form at registration.`}</div>
+                      </div>
+                    </div>
                   </>}
 
                   {divider()}
@@ -1858,6 +1867,16 @@ export default function App() {
                       `≈ ₹${(gross*rate/1e5).toFixed(1)}L/yr · net ~€${calcDE(gross,fam!=="single"?3:1,false).net.toLocaleString()}/mo`,
                       "gross"
                     )}
+                    {/* Church tax — lives here because it's a German payroll deduction */}
+                    <div onClick={()=>setNoKirche(p=>!p)} style={{display:"flex",alignItems:"flex-start",gap:12,cursor:"pointer",padding:"2px 0",marginBottom:20}}>
+                      <div style={{width:18,height:18,borderRadius:4,border:`2px solid ${noKirche?C.grn:"rgba(255,255,255,.2)"}`,background:noKirche?C.grn:"transparent",flexShrink:0,marginTop:2,display:"flex",alignItems:"center",justifyContent:"center",transition:"all .15s"}}>
+                        {noKirche&&<span style={{color:"#080c14",fontSize:11,fontWeight:700}}>✓</span>}
+                      </div>
+                      <div>
+                        <div style={{fontSize:13,fontWeight:600,color:noKirche?C.grn:C.t2}}>Opt out of church tax</div>
+                        <div style={{fontSize:11,color:C.t3,marginTop:3,lineHeight:1.5}}>{noKirche?`Saves €${de_live.kirche}/mo (€${(de_live.kirche*12).toLocaleString()}/yr) — declare "konfessionslos" at Anmeldung.`:`Saves €${de_live.kirche}/mo. Declare at registration — one form, 10 minutes.`}</div>
+                      </div>
+                    </div>
                     {dir==="de2in"&&<div style={{marginBottom:16}}>
                       <div style={{fontSize:13,color:C.t2,marginBottom:8}}>India tax regime</div>
                       <div style={{display:"flex",gap:6,marginBottom:6}}>
@@ -1879,18 +1898,6 @@ export default function App() {
                   {dir==="in2de"&&sub(`Tax Class ${tc} in Germany. Your all-in deduction rate: ${de_live.effRate}% of gross (tax + health + pension).`)}
                   {dir==="de2in"&&sub(`🇩🇪 Take-home: €${liveDeNet}/mo at ${liveDeEff}% all-in · 🇮🇳 Take-home: ₹${liveInNet}/mo at ${liveInEff}% effective.`)}
 
-                  {(dir==="in2de"||dir==="opp")&&<>
-                    {divider()}
-                    <div onClick={()=>setNoKirche(p=>!p)} style={{display:"flex",alignItems:"flex-start",gap:12,cursor:"pointer",padding:"2px 0"}}>
-                      <div style={{width:18,height:18,borderRadius:4,border:`2px solid ${noKirche?C.grn:"rgba(255,255,255,.2)"}`,background:noKirche?C.grn:"transparent",flexShrink:0,marginTop:2,display:"flex",alignItems:"center",justifyContent:"center",transition:"all .15s"}}>
-                        {noKirche&&<span style={{color:"#080c14",fontSize:11,fontWeight:700}}>✓</span>}
-                      </div>
-                      <div>
-                        <div style={{fontSize:13,fontWeight:600,color:noKirche?C.grn:C.t2}}>Opt out of church tax</div>
-                        <div style={{fontSize:11,color:C.t3,marginTop:3,lineHeight:1.5}}>{noKirche?`You save €${de_live.kirche}/mo (€${(de_live.kirche*12).toLocaleString()}/yr). Declare "konfessionslos" at Anmeldung.`:`Saves €${de_live.kirche}/mo. One form at the registration office — takes 10 minutes.`}</div>
-                      </div>
-                    </div>
-                  </>}
 
                   {divider()}
 

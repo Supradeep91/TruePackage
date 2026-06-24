@@ -1858,7 +1858,7 @@ export default function App() {
                       `≈ ₹${(gross*rate/1e5).toFixed(1)}L/yr · net ~€${calcDE(gross,fam!=="single"?3:1,false).net.toLocaleString()}/mo`,
                       "gross"
                     )}
-                    <div style={{marginBottom:16}}>
+                    {dir==="de2in"&&<div style={{marginBottom:16}}>
                       <div style={{fontSize:13,color:C.t2,marginBottom:8}}>India tax regime</div>
                       <div style={{display:"flex",gap:6,marginBottom:6}}>
                         {([["new","New FY26"],["old","Old regime"]] as ["new"|"old",string][]).map(([v,l])=>pill(l,inRegime===v,()=>setInRegime(v),"rgba(245,158,11,.8)"))}
@@ -1866,7 +1866,7 @@ export default function App() {
                       {sub(inRegime==="old"
                         ?"Old regime: ₹50K standard deduction + up to ₹1.5L via 80C (PF). Best if you claim HRA or have a home loan."
                         :"New regime: ₹75K standard deduction. Zero tax up to ₹12L income. No 80C or HRA — simpler and better for most salaried employees.")}
-                    </div>
+                    </div>}
                     {divider()}
                   </>}
 
@@ -1951,6 +1951,13 @@ export default function App() {
                     </>}
                     {/* Lifestyle */}
                     {(dir==="in2de"||dir==="opp")&&<div>
+                      {dir==="in2de"&&<div style={{marginBottom:16}}>
+                        <div style={{fontSize:13,color:C.t2,marginBottom:6}}>Your India tax regime</div>
+                        <div style={{display:"flex",gap:6,marginBottom:6}}>
+                          {([["new","New FY26"],["old","Old regime"]] as ["new"|"old",string][]).map(([v,l])=>pill(l,inRegime===v,()=>setInRegime(v)))}
+                        </div>
+                        {sub("Used only to calculate your current Indian take-home for the parity comparison. Most people leaving India are on the new regime.")}
+                      </div>}
                       <div style={{fontSize:12,color:C.t3,marginBottom:10}}>Germany lifestyle <span style={{fontStyle:"italic"}}>(adjusts your cost thresholds)</span></div>
                       {[
                         {lbl:"Apartment",opts:[["wg","Shared WG"],["1br","1 Bedroom"],["2br","2 Bedroom"]] as [string,string][],get:()=>dir==="in2de"?in2deLifestyle.apartment:oppLifestyle.apartment,set:(v:string)=>dir==="in2de"?setIn2deLifestyle(p=>({...p,apartment:v})):updateOppLifestyle("apartment",v)},

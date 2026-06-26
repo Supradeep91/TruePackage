@@ -1297,6 +1297,9 @@ export default function App() {
   const [oppLifestyle,setOppLifestyle]=useState<OppLifestyle>({apartment:'wg',cooking:'mix',car:false,gym:'none'});
   const [in2deLifestyle,setIn2deLifestyle]=useState<OppLifestyle>({apartment:'wg',cooking:'mix',car:false,gym:'none'});
   const [inRegime,setInRegime]=useState<"new"|"old">("new");
+  const [studentDuration,setStudentDuration]=useState(2);
+  const [studentFamilySupport,setStudentFamilySupport]=useState(40000);
+  const [studentSavings,setStudentSavings]=useState(500000);
 
   const [sourcesOpen,setSourcesOpen]=useState(false);
   const [checkedOpp,setCheckedOpp]=useState<Record<string,boolean>>({blockacc:false,health:false,cvde:false,lang:false,network:false});
@@ -1618,36 +1621,78 @@ export default function App() {
                 </div>
               );
             })()}
-            {dir==="student"&&(
-              <div style={{marginBottom:32}}>
-                <div style={{borderLeft:"3px solid rgba(124,58,237,.5)",paddingLeft:16,marginBottom:24}}>
-                  <p style={{fontSize:15,color:C.t1,lineHeight:1.65,fontWeight:500}}>
-                    A 2-year master's in Germany requires a Blocked Account (€11,208), student health insurance (~€125/mo), and semester fees (€150–350/semester). Most students underestimate the funding gap by ₹3–5 lakh.
-                  </p>
-                </div>
-                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:20}}>
-                  {[
-                    {label:"Blocked Account required",val:"€11,208",sub:"per year · shown at visa appointment",c:"#a78bfa"},
-                    {label:"Student health insurance",val:"~€125/mo",sub:"TK / AOK / DAK student tariff",c:"#a78bfa"},
-                    {label:"Part-time earnings (realistic)",val:"€500–700/mo",sub:"120 days/yr limit · Minijob + SHK",c:"#10d98c"},
-                    {label:"Monthly funding gap (typical)",val:"€400–800/mo",sub:"family support needed after work income",c:"#f59e0b"},
-                  ].map(x=>(
-                    <div key={x.label} style={{background:"rgba(124,58,237,.06)",border:"1px solid rgba(124,58,237,.18)",borderRadius:12,padding:"14px 16px"}}>
-                      <div style={{fontSize:11,color:C.t3,marginBottom:4}}>{x.label}</div>
-                      <div style={{fontSize:18,fontWeight:700,color:x.c,marginBottom:2}}>{x.val}</div>
-                      <div style={{fontSize:11,color:C.t3}}>{x.sub}</div>
+            {dir==="student"&&(()=>{
+              const semesters=studentDuration*2;
+              const blockedAccTotal=11208*studentDuration;
+              const semFees=250*semesters; // avg €250/semester
+              const dc=CITIES.de[deCity]||CITIES.de.Munich;
+              const wgRange=(DE_RENT_RANGES['wg'] as Record<string,[number,number]>)[deCity]||DE_RENT_RANGES['wg']['Munich'];
+              const wgMid=Math.round((wgRange[0]+wgRange[1])/2);
+              const monthlyFixed=wgMid+125+Math.round((dc.groc[0]+dc.groc[1])/2)+dc.trans; // WG+health+groc+transit
+              const partTimeMonthly=600; // realistic: ~€600/mo (120 days/yr limit)
+              const familySupportEur=Math.round(studentFamilySupport/rate);
+              const monthlyGap=Math.max(0,monthlyFixed-partTimeMonthly-familySupportEur);
+              const totalMonthsStudy=studentDuration*12;
+              const totalCashEur=blockedAccTotal+semFees+(monthlyGap*totalMonthsStudy);
+              const savingsEur=Math.round(studentSavings/rate);
+              const savingsCoversMonths=monthlyGap>0?Math.floor((savingsEur-blockedAccTotal)/Math.max(1,monthlyGap)):totalMonthsStudy;
+              const gapColor=monthlyGap<=0?"#10d98c":monthlyGap<300?"#e8a020":"#ff5b5b";
+              return (
+                <div style={{marginBottom:32}}>
+                  <div style={{borderLeft:"3px solid rgba(124,58,237,.5)",paddingLeft:16,marginBottom:24}}>
+                    <p style={{fontSize:15,color:C.ltxt,lineHeight:1.65,fontWeight:500}}>
+                      A {studentDuration}-year master's in {deCity} needs a Blocked Account of €{blockedAccTotal.toLocaleString()} upfront, plus €{semFees.toLocaleString()} in semester fees. Your monthly budget runs ~€{monthlyFixed.toLocaleString()}/mo — part-time work covers €{partTimeMonthly}/mo and family support covers ~€{familySupportEur.toLocaleString()}/mo.
+                    </p>
+                  </div>
+                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:20}}>
+                    {[
+                      {label:"Blocked Account (Sperrkonto)",val:`€${blockedAccTotal.toLocaleString()}`,sub:`€11,208 × ${studentDuration} yr · shown at visa`,c:"#a78bfa"},
+                      {label:"Monthly budget",val:`€${monthlyFixed.toLocaleString()}/mo`,sub:"WG rent + health + groceries + transit",c:"#a78bfa"},
+                      {label:"Part-time offset",val:`+€${partTimeMonthly}/mo`,sub:"120 days/yr · Minijob + SHK realistic",c:"#10d98c"},
+                      {label:"Monthly gap",val:monthlyGap<=0?"Covered ✓":`€${monthlyGap.toLocaleString()}/mo`,sub:monthlyGap<=0?"Family support + work covers all costs":"Needed from savings or family",c:gapColor},
+                    ].map(x=>(
+                      <div key={x.label} style={{background:"rgba(124,58,237,.06)",border:"1px solid rgba(124,58,237,.18)",borderRadius:12,padding:"14px 16px"}}>
+                        <div style={{fontSize:11,color:C.ltxt3,marginBottom:4}}>{x.label}</div>
+                        <div style={{fontSize:18,fontWeight:700,color:x.c,marginBottom:2}}>{x.val}</div>
+                        <div style={{fontSize:11,color:C.ltxt3}}>{x.sub}</div>
+                      </div>
+                    ))}
+                  </div>
+                  <div style={{background:"rgba(124,58,237,.06)",border:`1px solid ${monthlyGap>400?"rgba(255,91,91,.3)":monthlyGap>0?"rgba(232,160,32,.3)":"rgba(16,217,140,.3)"}`,borderRadius:14,padding:"18px 20px",marginBottom:16}}>
+                    <div style={{fontSize:10,fontWeight:700,letterSpacing:"2px",textTransform:"uppercase" as const,color:"#a78bfa",marginBottom:10}}>Total cash needed upfront</div>
+                    <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:34,fontWeight:700,color:"#a78bfa",lineHeight:1.15,marginBottom:4}}>
+                      €{totalCashEur.toLocaleString()}
                     </div>
-                  ))}
-                </div>
-                <div style={{background:"rgba(124,58,237,.08)",border:"1px solid rgba(124,58,237,.22)",borderRadius:12,padding:"16px 18px",display:"flex",alignItems:"flex-start",gap:12}}>
-                  <span style={{fontSize:20,flexShrink:0}}>🚧</span>
-                  <div>
-                    <div style={{fontSize:14,fontWeight:700,color:"#a78bfa",marginBottom:4}}>Full Student Planner — coming soon</div>
-                    <div style={{fontSize:13,color:C.t3,lineHeight:1.6}}>Enter your city, program duration, family funding capacity, and savings. Get your total upfront cash needed, semester-by-semester burn rate, part-time offset, and post-graduation job-seeker runway.</div>
+                    <div style={{fontSize:13,color:C.ltxt2,marginBottom:12}}>≈ ₹{Math.round(totalCashEur*rate).toLocaleString()} · Blocked account + semester fees + {studentDuration}-year gap funding</div>
+                    <div style={{display:"flex",gap:8}}>
+                      {[
+                        {label:"Your savings",val:`₹${(studentSavings/1e5).toFixed(1)}L (€${savingsEur.toLocaleString()})`},
+                        {label:"Savings runway",val:savingsCoversMonths>=totalMonthsStudy?"Full program":`${savingsCoversMonths} months`},
+                        {label:"Semester fees",val:`€${semFees.toLocaleString()}`},
+                      ].map(kv=>(
+                        <div key={kv.label} style={{flex:1,background:"rgba(0,0,0,.06)",borderRadius:8,padding:"10px 12px"}}>
+                          <div style={{fontSize:10,color:C.ltxt3,marginBottom:3}}>{kv.label}</div>
+                          <div style={{fontSize:13,fontWeight:700,color:C.ltxt}}>{kv.val}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  <div style={{background:"rgba(124,58,237,.05)",border:"1px solid rgba(124,58,237,.15)",borderRadius:12,padding:"14px 16px"}}>
+                    <div style={{fontSize:11,fontWeight:700,color:"#a78bfa",marginBottom:8}}>Per semester breakdown</div>
+                    {Array.from({length:semesters},(_,i)=>{
+                      const isFirst=i===0;
+                      const semCost=(isFirst?11208:0)+250+(monthlyFixed*6)-(partTimeMonthly*6)-(familySupportEur*6);
+                      return (
+                        <div key={i} style={{display:"flex",justifyContent:"space-between",padding:"6px 0",borderBottom:i<semesters-1?"1px solid rgba(124,58,237,.1)":"none"}}>
+                          <span style={{fontSize:12,color:C.ltxt2}}>Semester {i+1}{isFirst?" (incl. Sperrkonto)":""}</span>
+                          <span style={{fontSize:12,fontWeight:700,color:semCost>0?"#e8a020":"#10d98c"}}>{semCost>0?`€${semCost.toLocaleString()} needed`:"Self-funded ✓"}</span>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
-              </div>
-            )}
+              );
+            })()}
 
             {/* Live preview — tax waterfall */}
             {(dir==="in2de"||dir==="de2in")&&(()=>{
@@ -1987,7 +2032,7 @@ export default function App() {
 
                   {/* ── ROUTE ── */}
                   {sec("Route")}
-                  {dir==="opp"
+                  {(dir==="opp"||dir==="student")
                     ? <div style={{position:"relative",marginBottom:16}}>
                         <select className="ul-select" value={deCity} onChange={e=>setDeCity(e.target.value)}>
                           {deCities.map(o=><option key={o} style={{background:"#0b1020"}}>{o}</option>)}
@@ -2016,14 +2061,50 @@ export default function App() {
 
                   {dir==="opp"&&<>
                     {divider()}
-                    {sec("Savings to bring","Cash available in your account before your first German payslip.")}
+                    {sec("Money to bring")}
                     <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-end",marginBottom:2}}>
-                      <span style={{fontSize:13,color:C.t2}}>Amount</span>
+                      <span style={{fontSize:13,color:C.t2}}>Liquid savings</span>
                       <span style={{fontSize:16,fontWeight:700,color:C.gold}}>€{(savings/1000).toFixed(0)}K</span>
                     </div>
                     <input type="range" min={2000} max={30000} step={500} value={savings} onChange={e=>setSavings(+e.target.value)} style={{backgroundImage:sliderBg(savings,2000,30000)}}/>
-                    {sub(`€${(savings/1000).toFixed(0)}K in ${deCity} covers roughly ${Math.floor(savings/2200)}–${Math.ceil(savings/1800)} months of basic living.`)}
-                    <div style={{fontSize:11,color:C.grn,marginTop:6}}>✓ Church tax: €0 — not enrolled at Anmeldung</div>
+                    {sub(`Cash you can access freely — for rent deposit, IKEA run, and living costs until first payslip.`)}
+                    <div style={{marginTop:10,background:"rgba(124,58,237,.08)",border:"1px solid rgba(124,58,237,.2)",borderRadius:8,padding:"10px 12px"}}>
+                      <div style={{fontSize:11,fontWeight:700,color:"#a78bfa",marginBottom:4}}>Blocked Account (Sperrkonto)</div>
+                      <div style={{fontSize:13,fontWeight:700,color:"#a78bfa"}}>€11,208</div>
+                      <div style={{fontSize:11,color:C.t3,marginTop:2}}>Required by German embassy for job-seeker visa · separate from liquid savings · released ~€934/mo</div>
+                    </div>
+                    <div style={{marginTop:8,fontSize:11,color:C.t3,lineHeight:1.5}}>
+                      Total you need: <span style={{color:C.gold,fontWeight:700}}>€{(savings+11208).toLocaleString()}</span> (€{(savings/1000).toFixed(0)}K liquid + €11,208 Sperrkonto)
+                    </div>
+                  </>}
+
+                  {dir==="student"&&<>
+                    {divider()}
+                    {sec("Program duration")}
+                    <div style={{display:"flex",gap:6,marginBottom:12}}>
+                      {([2,3,4] as const).map(y=>(
+                        <button key={y} className="pill-sm" onClick={()=>setStudentDuration(y)}
+                          style={{flex:1,background:studentDuration===y?"#7c3aed":"transparent",border:`1px solid ${studentDuration===y?"#7c3aed":"rgba(255,255,255,0.1)"}`,color:studentDuration===y?"#fff":C.t3,fontWeight:studentDuration===y?700:400}}>
+                          {y} yr
+                        </button>
+                      ))}
+                    </div>
+                    {divider()}
+                    {sec("Family support","Monthly transfer from family in India.")}
+                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-end",marginBottom:2}}>
+                      <span style={{fontSize:13,color:C.t2}}>Amount</span>
+                      <span style={{fontSize:16,fontWeight:700,color:"#a78bfa"}}>₹{(studentFamilySupport/1000).toFixed(0)}K/mo</span>
+                    </div>
+                    <input type="range" min={0} max={100000} step={5000} value={studentFamilySupport} onChange={e=>setStudentFamilySupport(+e.target.value)} style={{backgroundImage:sliderBg(studentFamilySupport,0,100000)}}/>
+                    {sub(`≈ €${Math.round(studentFamilySupport/rate).toLocaleString()}/mo · covers part of the ${deCity} monthly budget`)}
+                    {divider()}
+                    {sec("Savings from India","Lump sum you bring before departure.")}
+                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-end",marginBottom:2}}>
+                      <span style={{fontSize:13,color:C.t2}}>Amount</span>
+                      <span style={{fontSize:16,fontWeight:700,color:"#a78bfa"}}>₹{(studentSavings/1e5).toFixed(1)}L</span>
+                    </div>
+                    <input type="range" min={0} max={2000000} step={50000} value={studentSavings} onChange={e=>setStudentSavings(+e.target.value)} style={{backgroundImage:sliderBg(studentSavings,0,2000000)}}/>
+                    {sub(`≈ €${Math.round(studentSavings/rate).toLocaleString()} · used for Sperrkonto + deposit + early gap months`)}
                   </>}
 
                   {dir!=="opp"&&divider()}

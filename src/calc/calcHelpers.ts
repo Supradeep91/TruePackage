@@ -9,11 +9,11 @@ interface DE { net:number;gross:number;gap:number;tax:number;soli:number;kirche:
 interface IN { net:number;tax:number;pf:number;eff:string; }
 
 // Shared rent ranges for all 12 German cities — used in calcThresholds and calcOpp
-// Sources: Numbeo (March 2026), germany-visa.org, studying-in-germany.org
-const DE_RENT_RANGES:Record<string,Record<string,number[]>>={
-  wg:{Munich:[700,1000],Berlin:[500,700],Frankfurt:[600,900],Hamburg:[550,800],Stuttgart:[520,780],Nuremberg:[380,600],Cologne:[440,680],Dusseldorf:[440,700],Karlsruhe:[420,650],Leipzig:[320,500],Dresden:[330,520],Mannheim:[430,660]},
-  "1br":{Munich:[1200,1700],Berlin:[800,1200],Frankfurt:[1050,1500],Hamburg:[950,1350],Stuttgart:[900,1300],Nuremberg:[650,1000],Cologne:[760,1150],Dusseldorf:[760,1200],Karlsruhe:[900,1350],Leipzig:[650,1000],Dresden:[700,1100],Mannheim:[950,1400]},
-  "2br":{Munich:[1700,2300],Berlin:[1100,1650],Frankfurt:[1450,2050],Hamburg:[1300,1850],Stuttgart:[1250,1750],Nuremberg:[900,1400],Cologne:[1050,1550],Dusseldorf:[1050,1600],Karlsruhe:[1250,1750],Leipzig:[900,1350],Dresden:[950,1450],Mannheim:[1300,1850]},
+// Sources: Numbeo (June 2026), miet-check.de, germany-visa.org
+export const DE_RENT_RANGES:Record<string,Record<string,number[]>>={
+  wg:{Munich:[720,1050],Berlin:[520,730],Frankfurt:[620,920],Hamburg:[570,830],Stuttgart:[540,800],Nuremberg:[400,620],Cologne:[460,700],Dusseldorf:[460,720],Karlsruhe:[440,670],Leipzig:[340,520],Dresden:[350,540],Mannheim:[440,680]},
+  "1br":{Munich:[1250,1750],Berlin:[850,1250],Frankfurt:[1100,1550],Hamburg:[980,1400],Stuttgart:[930,1350],Nuremberg:[680,1050],Cologne:[790,1200],Dusseldorf:[790,1250],Karlsruhe:[930,1400],Leipzig:[680,1050],Dresden:[730,1150],Mannheim:[970,1450]},
+  "2br":{Munich:[1750,2400],Berlin:[1200,1750],Frankfurt:[1500,2100],Hamburg:[1350,1950],Stuttgart:[1300,1800],Nuremberg:[950,1500],Cologne:[1100,1650],Dusseldorf:[1100,1700],Karlsruhe:[1300,1800],Leipzig:[950,1450],Dresden:[1000,1550],Mannheim:[1100,1600]},
 };
 
 interface Lifestyle { apartment:string; cooking:string; car:boolean; gym:string; }
@@ -30,7 +30,7 @@ export function calcThresholds(deCity:string,remINR:number,rate:number,fam:Fam,c
   // Transport: add €400/mo for car ownership
   const transAmt=lifestyle?.car?(dc.trans+400):dc.trans;
   // Gym
-  const gymAmt=lifestyle?.gym==='basic'?40:lifestyle?.gym==='premium'?75:0;
+  const gymAmt=lifestyle?.gym==='basic'?25:lifestyle?.gym==='premium'?75:0;
   const gm=Math.round(rentUsed+grocBase+eatingOut+transAmt+(dc.util[0]+dc.util[1])/2+gymAmt+25);
   const remEur=Math.round(remINR/rate*1.012);
   const indianNetMonthly=calcIN(ctc,inCity).net;
@@ -98,7 +98,7 @@ export function calcOpp(deCity:string,savings:number,fam:string,lifestyle:{apart
   const grocMid=lifestyle.cooking==='cook'?dc.groc[1]:lifestyle.cooking==='mix'?Math.round((dc.groc[0]+dc.groc[1])/2):dc.groc[0];
   const eatingOut=lifestyle.cooking==='cook'?0:lifestyle.cooking==='mix'?150:350;
   const trans=lifestyle.car?dc.trans+400:dc.trans;
-  const gym=lifestyle.gym==='basic'?40:lifestyle.gym==='premium'?75:0;
+  const gym=lifestyle.gym==='basic'?25:lifestyle.gym==='premium'?75:0;
   const utilMid=Math.round((dc.util[0]+dc.util[1])/2);
   const healthFull=fam==='married-kids'?800:fam==='married'?600:400;
   const phone=25;

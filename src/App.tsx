@@ -2204,22 +2204,25 @@ export default function App() {
               );
             })()}
 
-            {/* ── NARRATIVE CALLOUT (below calculator controls) ── */}
-            {(dir==="in2de"||dir==="de2in")&&(()=>{
-              const _net=de_live.net,_gross=de_live.gross,_effN=Math.round(_net/_gross*100);
-              const _inNet=liveIn.net,_gapEur=_net-Math.round(_inNet/rate);
-              const _narrative=dir==="in2de"
-                ?`Your €${(_gross/1000).toFixed(0)}K offer in ${deCity} nets you €${_net.toLocaleString()}/mo — that's ${_effN}% of gross. You're ${_gapEur>=0?"€"+_gapEur.toLocaleString()+" ahead of":"€"+Math.abs(_gapEur).toLocaleString()+" short of"} parity with ${inCity}.`
-                :`Your €${(_gross/1000).toFixed(0)}K German gross nets €${_net.toLocaleString()}/mo. The India offer of ₹${(ctc/1e5).toFixed(0)}L nets ₹${_inNet.toLocaleString()}/mo (≈ €${Math.round(_inNet/rate).toLocaleString()}/mo). ${_gapEur>=0?"+":"−"}€${Math.abs(_gapEur).toLocaleString()}/mo difference.`;
-              return (
-                <div style={{marginTop:16,borderTop:"1px solid rgba(255,255,255,.06)",paddingTop:14,borderLeft:`3px solid ${dir==="in2de"?"rgba(37,99,235,.4)":"rgba(217,119,6,.4)"}`,paddingLeft:14}}>
-                  <p style={{fontSize:13,color:C.t2,lineHeight:1.65,fontWeight:500}}>{_narrative}</p>
-                  <p style={{fontSize:11,color:C.t3,marginTop:4}}>Updates live as you move the sliders →</p>
-                </div>
-              );
-            })()}
           </div>
         </div>
+
+        {/* ── NARRATIVE CALLOUT (below right calculator card) ── */}
+        {(dir==="in2de"||dir==="de2in")&&(()=>{
+          const _net=de_live.net,_gross=de_live.gross,_effN=Math.round(_net/_gross*100);
+          const _inNet=liveIn.net,_gapEur=_net-Math.round(_inNet/rate);
+          const _narrative=dir==="in2de"
+            ?`Your €${(_gross/1000).toFixed(0)}K offer in ${deCity} nets you €${_net.toLocaleString()}/mo — that's ${_effN}% of gross. You're ${_gapEur>=0?"€"+_gapEur.toLocaleString()+" ahead of":"€"+Math.abs(_gapEur).toLocaleString()+" short of"} parity with ${inCity}.`
+            :`Your €${(_gross/1000).toFixed(0)}K German gross nets €${_net.toLocaleString()}/mo. The India offer of ₹${(ctc/1e5).toFixed(0)}L nets ₹${_inNet.toLocaleString()}/mo (≈ €${Math.round(_inNet/rate).toLocaleString()}/mo). ${_gapEur>=0?"+":"−"}€${Math.abs(_gapEur).toLocaleString()}/mo difference.`;
+          return (
+            <div style={{maxWidth:1060,margin:"12px auto 0",padding:"0 28px",display:"flex",justifyContent:"flex-end"}}>
+              <div style={{width:380,borderLeft:`3px solid ${dir==="in2de"?"rgba(37,99,235,.4)":"rgba(217,119,6,.4)"}`,paddingLeft:14}}>
+                <p style={{fontSize:13,color:C.ltxt2,lineHeight:1.65,fontWeight:500}}>{_narrative}</p>
+                <p style={{fontSize:11,color:C.ltxt3,marginTop:4}}>Updates live as you move the sliders →</p>
+              </div>
+            </div>
+          );
+        })()}
       </section>
 
       {/* FOOTER */}

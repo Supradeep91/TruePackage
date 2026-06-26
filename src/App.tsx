@@ -1,8 +1,8 @@
-import { useState, useEffect, useCallback, type ReactNode } from "react";
+import { useState, useEffect, useCallback, useRef, type ReactNode } from "react";
 import { CITIES } from "./data/cities";
 import { calcDE } from "./calc/calcDE";
 import { calcIN } from "./calc/calcIN";
-import { calcThresholds, calcBreakEven, calcMatchCTC, calcOpp } from "./calc/calcHelpers";
+import { calcThresholds, calcBreakEven, calcMatchCTC, calcOpp, DE_RENT_RANGES } from "./calc/calcHelpers";
 import { getMarketRange } from "./data/salaryRanges";
 import { useURLState } from "./hooks/useURLState";
 import { Acc } from "./components/shared/Accordion";
@@ -11,7 +11,7 @@ import { CalcWorking } from "./components/shared/CalcWorking";
 import type { CalcRow } from "./components/shared/CalcWorking";
 
 // ─── TYPES ───────────────────────────────────────────────────────────────────
-type Dir = "in2de" | "de2in" | "opp";
+type Dir = "in2de" | "de2in" | "opp" | "student";
 type Fam = "single" | "married" | "married-kids";
 interface DE { net:number;gross:number;gap:number;tax:number;soli:number;kirche:number;health:number;pension:number;nursing:number;effRate:string; }
 interface IN { net:number;tax:number;pf:number;eff:string; }
@@ -43,14 +43,17 @@ function formatCurrency(num: number, currency: "inr" | "eur"): string {
 }
 
 const C = {
-  bg0:"#080c14",bg1:"#0f1624",bg2:"#141e30",bgi:"#0b1020",
+  // Dark zone (calculator layer) — softer base, less harsh
+  bg0:"#111827",bg1:"#1a2437",bg2:"#1e2d45",bgi:"#141f32",
   gold:"#f59e0b",goldD:"rgba(245,158,11,.13)",goldL:"rgba(245,158,11,.32)",
   grn:"#10d98c",grnD:"rgba(16,217,140,.08)",grnL:"rgba(16,217,140,.28)",
   red:"#f55b5b",redD:"rgba(245,91,91,.08)",
-  t1:"#f0f4fa",t2:"#8fa3c0",t3:"#4e637e",
-  b0:"rgba(255,255,255,.05)",b1:"rgba(255,255,255,.1)",
-  // accent border colors per card
+  t1:"#eef2f9",t2:"#8fa3c0",t3:"#5a7290",
+  b0:"rgba(255,255,255,.06)",b1:"rgba(255,255,255,.11)",
   accentBlue:"rgba(99,179,237,.6)",accentAmber:"rgba(245,158,11,.6)",accentGreen:"rgba(16,217,140,.5)",
+  // Light zone (nav + journey band)
+  lbg:"#F7F5F0",lbg2:"#EFECE6",lborder:"rgba(0,0,0,.08)",
+  ltxt:"#1a2437",ltxt2:"#4a5568",ltxt3:"#8a98a8",
 };
 
 // ─── CALC ENGINE ─────────────────────────────────────────────────────────────
@@ -482,7 +485,7 @@ function CardA_in({de,india,remEur,dc,ic,ctc,gross,isM,sk3,noKirche}:{de:DE;indi
         <CalcWorking title="Deduction breakdown" rows={[
           {label:"Income tax (Lohnsteuer 2026)",value:`€${de.tax.toLocaleString()}/mo`},
           {label:"Solidarity surcharge",value:de.soli>0?`€${de.soli.toLocaleString()}/mo`:"€0 (below threshold)"},
-          {label:"Church tax",value:noKirche?"€0 — opted out ✓":`€${de.kirche.toLocaleString()}/mo`},
+          {label:"Church tax",value:"€0 — not applicable (declared non-Christian at Anmeldung)"},
           {label:"Health + nursing insurance",value:`€${(de.health+de.nursing).toLocaleString()}/mo`},
           {label:"Pension + unemployment",value:`€${de.pension.toLocaleString()}/mo`},
           {label:"Total deductions",value:`€${de.gap.toLocaleString()}/mo`,muted:false},
@@ -605,7 +608,7 @@ function CardB_in({de,ic,ctc,sk3,rate,noKirche,remEur,fam,dc,deCity,view}:{de:DE
     {icon:"🏛",lbl:"Income tax",val:`−€${de.tax.toLocaleString()}/mo`,note:`€12,348 tax-free allowance (TC1). Income tax only — total all-in rate incl. social contributions is ${de.effRate}%.`,type:"unavoidable"},
     {icon:"🏥",lbl:"Health + nursing",val:`−€${(de.health+de.nursing).toLocaleString()}/mo`,note:"Statutory KV: employer splits 50/50. Nursing care ~2.05% employee-only. Both mandatory.",type:"unavoidable"},
     {icon:"🏦",lbl:"Pension + unemployment",val:`−€${de.pension.toLocaleString()}/mo`,note:"Pension (RV): 9.3% employee. Unemployment (AV): 1.3%. Ceiling €96,600/yr. Employer matches pension.",type:"unavoidable"},
-    {icon:"⛪",lbl:"Church tax",val:noKirche?`€0/mo — opted out ✓`:`−€${de.kirche.toLocaleString()}/mo`,type:"avoidable",optedOut:noKirche,note:'Declare "konfessionslos" on your Anmeldung. Saves this immediately. One form, done.'},
+    {icon:"⛪",lbl:"Church tax",val:`€0/mo — not applicable`,type:"opportunity",optedOut:true,note:'Kirchensteuer only applies to registered members of recognised German churches. Indians declare their religion at Anmeldung and are never enrolled — this deduction simply doesn\'t exist for you.'},
     {icon:"🧹",lbl:"Domestic help — gone",val:`−€${helpEur.toLocaleString()}/mo`,note:"Cook + cleaner ₹12–18K/mo in India. In Germany this is a luxury you can't afford.",type:"avoidable"},
     ...(remEur>0?[{icon:"💸",lbl:"Remittance cost",val:`−€${spreadCost.toLocaleString()}/mo`,note:wiseNote,type:"avoidable" as const}]:[]),
     {icon:"📦",lbl:"EPF stops",val:`−₹${epf.toLocaleString()}/mo (≈ −€${epfEur}/mo)`,note:"Employer PF (12% of basic) stops. German GRV replaces it but locked until German retirement age.",type:"unavoidable"},
@@ -656,7 +659,7 @@ function CardB_in({de,ic,ctc,sk3,rate,noKirche,remEur,fam,dc,deCity,view}:{de:DE
   const transAccordion=lifestyle.car?`Monthly pass €${dc.trans} + €400 car costs (insurance, fuel, depreciation). Consider whether you actually need a car — ${deCity} public transport is excellent.`:`Monthly public transport pass only — €${dc.trans}/mo. No car needed in ${deCity}. Germany public transport covers most daily needs.`;
 
   // Lifestyle-driven gym
-  const gymAmount=lifestyle.gym==='none'?0:lifestyle.gym==='basic'?40:75;
+  const gymAmount=lifestyle.gym==='none'?0:lifestyle.gym==='basic'?25:75;
   const gymLabel=lifestyle.gym==='none'?'No gym':lifestyle.gym==='basic'?'Basic gym (McFit, Clever Fit)':'Premium gym (Holmes Place, Fitness First)';
   const gymAccordion='Unlike India, company gyms are rare in Germany. Budget €30–80/mo depending on gym tier. Many Indians are surprised by this cost.';
 
@@ -733,7 +736,7 @@ function CardB_in({de,ic,ctc,sk3,rate,noKirche,remEur,fam,dc,deCity,view}:{de:DE
             <div>
               <div style={{fontSize:12,fontWeight:600,color:C.t2,marginBottom:6}}>💪 Gym</div>
               <div style={{display:"flex",gap:6,flexWrap:"wrap" as const}}>
-                {([['none','No gym'],['basic','Basic €40/mo'],['premium','Premium €75/mo']] as const).map(([v,l])=>(
+                {([['none','No gym'],['basic','Basic €25/mo'],['premium','Premium €75/mo']] as const).map(([v,l])=>(
                   <button key={v} style={pillStyle(lifestyle.gym===v)} onClick={()=>setLifestyle({...lifestyle,gym:v})}>{l}</button>
                 ))}
               </div>
@@ -1273,14 +1276,10 @@ export default function App() {
   const [remittanceCurrency,setRemittanceCurrency]=useState<"inr"|"eur">("inr");
   const [commitments,setCommitments]=useState(Number(getParam('comm','0')));
   const [commitmentsCurrency,setCommitmentsCurrency]=useState<"inr"|"eur">("inr");
-  const [noKircheInit]=useState(getParam('kirche','0')==='1');
+  const [noKircheInit]=useState(true); // Indians are never enrolled in Kirchensteuer at Anmeldung
   const [rate,setRate]=useState(90);
   const [rateDate,setRateDate]=useState("");
   const [loading,setLoading]=useState(false);
-  const [loadMsg,setLoadMsg]=useState("Running calculations…");
-  const [activeTab,setActiveTab]=useState('decision');
-  const tabs=['decision','money','breakdown','nextsteps'];
-  const [results,setResults]=useState<{cardD:React.ReactNode;cardA:React.ReactNode;cardBDed:React.ReactNode;cardBLiv:React.ReactNode;ai:AI|null;gross:number;thr:Thr|null;savedMatch:Match|null}|null>(null);
   const [calOpen,setCalOpen]=useState(false);
   const [intakeOpen,setIntakeOpen]=useState(false);
   const [situation,setSituation]=useState('');
@@ -1291,19 +1290,22 @@ export default function App() {
   const [emailError,setEmailError]=useState(false);
   const [noKirche,setNoKirche]=useState(noKircheInit);
   const [focusedInput,setFocusedInput]=useState<string|null>(null);
+  const [heroInEur,setHeroInEur]=useState(false);
   const [tempInputValue,setTempInputValue]=useState<string>("");
   const [advOpen,setAdvOpen]=useState(false);
   const [savings,setSavings]=useState(5000);
   const [oppLifestyle,setOppLifestyle]=useState<OppLifestyle>({apartment:'wg',cooking:'mix',car:false,gym:'none'});
   const [in2deLifestyle,setIn2deLifestyle]=useState<OppLifestyle>({apartment:'wg',cooking:'mix',car:false,gym:'none'});
   const [inRegime,setInRegime]=useState<"new"|"old">("new");
-  const [field,setField]=useState('Software Engineer / IT');
-  const [seniority,setSeniority]=useState('Mid (4–8 yrs)');
+
   const [sourcesOpen,setSourcesOpen]=useState(false);
-  const [oppResults,setOppResults]=useState<OppResult|null>(null);
   const [checkedOpp,setCheckedOpp]=useState<Record<string,boolean>>({blockacc:false,health:false,cvde:false,lang:false,network:false});
   const [whatIfGross,setWhatIfGross]=useState<number|null>(null);
   const [urlShared,setUrlShared]=useState(false);
+  const [openModal,setOpenModal]=useState<null|'money'|'breakdown'|'nextsteps'|'runway'|'prelanding'>(null);
+  const [showDeductions,setShowDeductions]=useState(false);
+  const [verdictPulse,setVerdictPulse]=useState(false);
+  const _prevVerdictRef=useRef('');
 
   // EUR/INR fetch
   useEffect(()=>{
@@ -1319,13 +1321,6 @@ export default function App() {
     })();
   },[]);
 
-  useEffect(()=>{
-    if(hasParams){
-      const t=setTimeout(()=>{handleRun()},300);
-      return ()=>clearTimeout(t);
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  },[]);
 
   // Live preview
   const tc=fam!=="single"?3:1;
@@ -1345,160 +1340,109 @@ export default function App() {
     return `linear-gradient(to right,${C.gold} 0%,${C.gold} ${pct}%,#111f35 ${pct}%,#111f35 100%)`;
   };
 
-  async function handleRun() {
-    if(loading)return;
-    setLoading(true);
-    const msgs=["Running calculations…","Checking 2026 tax tables…","Almost done…"];
-    let mi=0;const lt=setInterval(()=>setLoadMsg(msgs[++mi%msgs.length]),1500);
-    try{
-      if(dir==="opp"){
-        setResults(null);
-        const oppRes=calcOpp(deCity,savings,fam,oppLifestyle,rate);
-        setOppResults(oppRes);
-        setActiveTab('decision');
-        setTimeout(()=>document.getElementById("results")?.scrollIntoView({behavior:"smooth",block:"start"}),100);
-        return;
-      }
-      setOppResults(null);
-      const isM=fam!=="single",tcv=isM?3:1;
-      const de=calcDE(gross,tcv,noKirche),india=calcIN(ctc,inCity,inRegime);
-      const remINR=remittanceCurrency==="eur"?Math.round(rem*rate):rem;
-      const remEur=Math.round(remINR/rate*1.012);
-      let cardD:React.ReactNode,cardA:React.ReactNode,cardBDed:React.ReactNode,cardBLiv:React.ReactNode,ai:AI,savedThr:Thr|null=null,savedMatch:Match|null=null;
-      if(dir==="in2de"){
-        const sk3=isM?Math.max(0,calcDE(gross,1).tax-calcDE(gross,3).tax):0;
-        const thr=calcThresholds(deCity,remINR,rate,fam,ctc,inCity,in2deLifestyle),be=calcBreakEven(gross,thr,de,india,rate,deCity,rem,remittanceCurrency,commitments,commitmentsCurrency);
-        const dc=CITIES.de[deCity]||CITIES.de.Munich,ic=CITIES.in[inCity]||CITIES.in.Bangalore;
-        ai=await runAI("in2de",inCity,deCity,gross,ctc,fam,rem,de,india,remEur,null,rate);
-        cardD=<CardD_in gross={gross} thr={thr} be={be} deCity={deCity} inCity={inCity} tc={tcv} noKirche={noKirche} savings={savings} de={de} remEur={remEur} rate={rate} dc={dc} fam={fam} field={field} seniority={seniority}/>;
-        cardA=<CardA_in de={de} india={india} remEur={remEur} dc={dc} ic={ic} ctc={ctc} gross={gross} isM={isM} sk3={sk3} noKirche={noKirche}/>;
-        cardBDed=<CardB_in de={de} ic={ic} ctc={ctc} sk3={sk3} rate={rate} noKirche={noKirche} remEur={remEur} fam={fam} dc={dc} deCity={deCity} view="deductions"/>;
-        cardBLiv=<CardB_in de={de} ic={ic} ctc={ctc} sk3={sk3} rate={rate} noKirche={noKirche} remEur={remEur} fam={fam} dc={dc} deCity={deCity} view="living"/>;
-        savedThr=thr;
-      }else{
-        const fs=fam==="married-kids"?4:fam==="married"?2:1;
-        const match=calcMatchCTC(deCity,inCity,fs,de.net,rate,inRegime),ic=CITIES.in[inCity]||CITIES.in.Bangalore;
-        const dc=CITIES.de[deCity]||CITIES.de.Munich;
-        ai=await runAI("de2in",inCity,deCity,gross,ctc,fam,rem,de,india,remEur,match,rate);
-        cardD=<CardD_de ctc={ctc} match={match} de={de} india={india} fam={fam} rate={rate} gross={gross} ic={ic} dc={dc} inCity={inCity} deCity={deCity}/>;
-        cardA=<CardA_de de={de} india={india} match={match} ctc={ctc} rate={rate} inCity={inCity}/>;
-        cardBDed=<CardB_de de={de} india={india} match={match} ic={ic} ctc={ctc} fam={fam} inCity={inCity} view="deductions"/>;
-        cardBLiv=<CardB_de de={de} india={india} match={match} ic={ic} ctc={ctc} fam={fam} inCity={inCity} view="living"/>;
-        savedMatch=match;
-      }
-      writeParams({dir,dc:deCity,ic:inCity,gross:String(gross),ctc:String(ctc),fam,rem:String(rem),comm:String(commitments),kirche:noKirche?'1':'0'});
-      setWhatIfGross(null);
-      setActiveTab('decision');
-      setResults({cardD,cardA,cardBDed,cardBLiv,ai,gross,thr:savedThr,savedMatch});
-      setTimeout(()=>document.getElementById("results")?.scrollIntoView({behavior:"smooth",block:"start"}),100);
-    }finally{clearInterval(lt);setLoading(false);}
-  }
-
   function updateOppLifestyle(key:keyof OppLifestyle,val:string|boolean){
     const next={...oppLifestyle,[key]:val};
     setOppLifestyle(next);
-    if(oppResults){setOppResults(calcOpp(deCity,savings,fam,next,rate));}
   }
 
 
   const inCities=["Ahmedabad","Bangalore","Chennai","Coimbatore","Delhi NCR","Gurgaon","Hyderabad","Indore","Kochi","Kolkata","Mumbai","Noida","Pune"];
   const deCities=["Berlin","Cologne","Dresden","Dusseldorf","Frankfurt","Hamburg","Karlsruhe","Leipzig","Mannheim","Munich","Nuremberg","Stuttgart"];
 
-  // Pinned verdict strip — computed values (all arithmetic extracted to consts)
-  const _rthr = results?.thr;
-  const _rmatch = results?.savedMatch;
-  const _rgross = results?.gross ?? gross;
-  const _rgrossAboveComfort = !!(_rthr && _rgross >= _rthr.comfort);
-  const _rgrossAboveMatch   = !!(_rthr && _rgross >= _rthr.match);
-  const _rgrossAboveFloor   = !!(_rthr && _rgross >= _rthr.floor);
-  const _rctcAboveMatch     = !!(_rmatch && ctc >= _rmatch.match);
-  const _rcomfortK  = _rthr ? (_rthr.comfort/1000).toFixed(0) : '0';
-  const _rmatchK    = _rthr ? (_rthr.match/1000).toFixed(0) : '0';
-  const _rgrossK    = (_rgross/1000).toFixed(0);
-  const _raboveComfortK = _rthr ? Math.round((_rgross-_rthr.comfort)/1000) : 0;
-  const _rshortOfComfortK = _rthr ? Math.round((_rthr.comfort-_rgross)/1000) : 0;
-  const _rctcL   = (ctc/100000).toFixed(1);
-  const _rctcAboveMatchL = _rmatch ? ((ctc-_rmatch.match)/100000).toFixed(1) : '0';
-  const _rcounterL = _rmatch ? (_rmatch.match*1.1/100000).toFixed(1) : '0';
+  // ── LIVE COMPUTED RESULTS (always derived from current slider state) ──────────
+  const _liveTc = fam!=="single"?3:1;
+  const _liveDe = calcDE(gross,_liveTc,noKirche);
+  const _liveIn = calcIN(ctc,inCity,inRegime);
+  const _liveRemINR = remittanceCurrency==="eur"?Math.round(rem*rate):rem;
+  const _liveRemEur = Math.round(_liveRemINR/rate*1.012);
+  const _liveIsM = fam!=="single";
+  const _liveSk3 = _liveIsM?Math.max(0,calcDE(gross,1).tax-calcDE(gross,3).tax):0;
 
-  const pinnedBg = !results ? 'transparent'
-    : dir === 'in2de' && _rthr
-      ? (_rgrossAboveComfort ? 'rgba(0,100,60,0.9)' : _rgrossAboveMatch ? 'rgba(140,90,0,0.9)' : 'rgba(140,30,30,0.9)')
-      : dir === 'de2in' && _rmatch
-        ? (_rctcAboveMatch ? 'rgba(0,100,60,0.9)' : 'rgba(140,30,30,0.9)')
-        : 'transparent';
+  const _liveThr = (dir==="in2de"||dir==="de2in")
+    ? calcThresholds(deCity,_liveRemINR,rate,fam,ctc,inCity,dir==="in2de"?in2deLifestyle:undefined)
+    : null;
+  const _liveBe = (dir==="in2de"&&_liveThr)
+    ? calcBreakEven(gross,_liveThr,_liveDe,_liveIn,rate,deCity,rem,remittanceCurrency,commitments,commitmentsCurrency)
+    : null;
+  const _liveFs = fam==="married-kids"?4:fam==="married"?2:1;
+  const _liveMatch = dir==="de2in"
+    ? calcMatchCTC(deCity,inCity,_liveFs,_liveDe.net,rate,inRegime)
+    : null;
+  const _liveOpp = dir==="opp"
+    ? calcOpp(deCity,savings,fam,oppLifestyle,rate)
+    : null;
 
-  const pinnedText = !results ? ''
-    : dir === 'in2de' && _rthr
-      ? (_rgrossAboveComfort
-          ? `✓ Strong offer · €${_rgrossK}K is €${_raboveComfortK}K above comfort`
-          : _rgrossAboveMatch
-          ? `↗ Counter to €${_rcomfortK}K · offer is €${_rshortOfComfortK}K short`
-          : _rgrossAboveFloor
-          ? `⚠ Below parity · counter to minimum €${_rmatchK}K`
-          : `✗ Not viable · counter to €${_rcomfortK}K`)
-      : dir === 'de2in' && _rmatch
-        ? (_rctcAboveMatch
-            ? `✓ Offer clears threshold · ₹${_rctcL}L is ₹${_rctcAboveMatchL}L above match`
-            : `⚠ Below match · counter to ₹${_rcounterL}L`)
-        : '';
+  // Verdict logic — all derived live
+  const _thr = _liveThr;
+  const _match = _liveMatch;
+  const _grossAboveComfort = !!(_thr && gross >= _thr.comfort);
+  const _grossAboveMatch   = !!(_thr && gross >= _thr.match);
+  const _grossAboveFloor   = !!(_thr && gross >= _thr.floor);
+  const _ctcAboveMatch     = !!(_match && ctc >= _match.match);
+  const _comfortK  = _thr ? (_thr.comfort/1000).toFixed(0) : '0';
+  const _matchK    = _thr ? (_thr.match/1000).toFixed(0) : '0';
+  const _grossK    = (gross/1000).toFixed(0);
+  const _aboveComfortK = _thr ? Math.round((gross-_thr.comfort)/1000) : 0;
+  const _shortOfComfortK = _thr ? Math.round((_thr.comfort-gross)/1000) : 0;
+  const _ctcL   = (ctc/100000).toFixed(1);
+  const _ctcAboveMatchL = _match ? ((ctc-_match.match)/100000).toFixed(1) : '0';
+  const _counterL = _match ? (_match.match*1.1/100000).toFixed(1) : '0';
 
-  const pinnedColor = !results ? C.t2
-    : dir === 'in2de' && _rthr
-      ? (_rgrossAboveComfort ? '#00c98b' : _rgrossAboveMatch ? '#e8a020' : '#ff5b5b')
-      : dir === 'de2in' && _rmatch
-        ? (_rctcAboveMatch ? '#00c98b' : '#ff5b5b')
-        : C.t2;
+  const verdictColor = dir==='in2de' && _thr
+    ? (_grossAboveComfort ? '#00c98b' : _grossAboveMatch ? '#e8a020' : '#ff5b5b')
+    : dir==='de2in' && _match
+      ? (_ctcAboveMatch ? '#00c98b' : '#ff5b5b')
+      : C.t2;
+  const verdictBg = verdictColor==='#00c98b' ? 'rgba(0,201,139,0.08)' : verdictColor==='#e8a020' ? 'rgba(232,160,32,0.08)' : verdictColor==='#ff5b5b' ? 'rgba(255,91,91,0.08)' : 'transparent';
+  const verdictBorder = verdictColor==='#00c98b' ? 'rgba(0,201,139,0.25)' : verdictColor==='#e8a020' ? 'rgba(232,160,32,0.25)' : 'rgba(255,91,91,0.25)';
 
-  // Confidence sentence — computed values
-  const confidenceText = !results ? ''
-    : dir === 'in2de' && _rthr
-      ? (_rgrossAboveComfort
-          ? 'This offer works financially. Here is how to make it work better.'
-          : _rgrossAboveMatch
-          ? 'This offer needs negotiation before you sign.'
-          : _rgrossAboveFloor
-          ? 'This offer costs you money vs staying in India.'
-          : 'Do not accept this offer.')
-      : dir === 'de2in' && _rmatch
-        ? (_rctcAboveMatch
-            ? 'Returning makes financial sense at this offer.'
-            : 'The numbers do not work yet. Here is what needs to change.')
-        : '';
-  const confidenceColor = !results ? C.t2
-    : dir === 'in2de' && _rthr
-      ? (_rgrossAboveComfort ? '#00c98b' : _rgrossAboveMatch ? '#e8a020' : '#ff5b5b')
-      : dir === 'de2in' && _rmatch
-        ? (_rctcAboveMatch ? '#00c98b' : '#ff5b5b')
-        : C.t2;
-  const confidenceBg = confidenceColor === '#00c98b' ? 'rgba(0,201,139,0.06)'
-    : confidenceColor === '#e8a020' ? 'rgba(232,160,32,0.06)'
-    : confidenceColor === '#ff5b5b' ? 'rgba(255,91,91,0.06)'
-    : 'transparent';
-  const confidenceBorderBottom = confidenceColor === '#00c98b' ? 'rgba(0,201,139,0.20)'
-    : confidenceColor === '#e8a020' ? 'rgba(232,160,32,0.20)'
-    : confidenceColor === '#ff5b5b' ? 'rgba(255,91,91,0.20)'
-    : 'transparent';
+  const verdictHeadline = dir==='in2de' && _thr
+    ? (_grossAboveComfort ? `Strong offer — €${_aboveComfortK}K above comfort`
+      : _grossAboveMatch ? `Good offer — counter to €${_comfortK}K`
+      : _grossAboveFloor ? `Below parity — minimum €${_matchK}K`
+      : `Not viable — counter to €${_comfortK}K`)
+    : dir==='de2in' && _match
+      ? (_ctcAboveMatch ? `Offer clears threshold — ₹${_ctcAboveMatchL}L above match`
+        : `Below match — counter to ₹${_counterL}L`)
+      : '';
+  const verdictSub = dir==='in2de' && _thr
+    ? (_grossAboveComfort ? 'Accept. Your offer clears every threshold.'
+      : _grossAboveMatch ? `Accept. Counter to €${_comfortK}K if there is room.`
+      : _grossAboveFloor ? `Counter at €${_matchK}K minimum before signing.`
+      : `Do not accept. Counter at €${_comfortK}K.`)
+    : dir==='de2in' && _match
+      ? (_ctcAboveMatch ? 'Accept. Ask for Day 1 health cover in writing.'
+        : `Counter before accepting. Target ₹${_counterL}L.`)
+      : '';
 
-  // One Thing To Do Today — computed values
-  const _rOneThingGrossK = Math.round(_rgross * 1.08 / 5000) * 5;
-  const _rOneThingComfortK = _rthr ? Math.round(_rthr.comfort / 1000) : 0;
-  const _rOneThingMatchLPA = _rmatch ? (_rmatch.match * 1.1 / 100000).toFixed(1) : '0';
-  const oneThingText = !results ? ''
-    : dir === 'in2de' && _rthr
-      ? (_rgrossAboveComfort
-          ? `Email your recruiter today. Subject: "Following up on the ${deCity} offer." Ask: "Is there flexibility on the gross or a relocation allowance? I am targeting €${_rOneThingGrossK}K."`
-          : _rgrossAboveMatch
-          ? `Before your next recruiter call, write down this number: €${_rOneThingComfortK}K. That is your walk-away minimum. Do not accept below it.`
-          : `Reply to the offer with one ask: "I am very interested. Can we discuss getting to €${_rOneThingComfortK}K gross? That is my minimum for ${deCity} based on cost of living."`)
-      : dir === 'de2in' && _rmatch
-        ? (_rctcAboveMatch
-            ? `Ask your new employer to confirm Day 1 health insurance cover in writing before you resign from your German role.`
-            : `Reply to the offer with one ask: "I am very interested. Can we discuss getting to ₹${_rOneThingMatchLPA}L? That is my lifestyle-match number for ${inCity}."`)
-        : '';
+  const oneThingText = dir==='in2de' && _thr
+    ? (_grossAboveComfort
+        ? `Email your recruiter today. Subject: "Following up on the ${deCity} offer." Ask: "Is there flexibility on the gross or a relocation allowance? I am targeting €${Math.round(gross*1.08/5000)*5}K."`
+        : _grossAboveMatch
+        ? `Before your next recruiter call, write down this number: €${Math.round(_thr.comfort/1000)}K. That is your walk-away minimum. Do not accept below it.`
+        : `Reply to the offer with one ask: "I am very interested. Can we discuss getting to €${Math.round(_thr.comfort/1000)}K gross? That is my minimum for ${deCity} based on cost of living."`)
+    : dir==='de2in' && _match
+      ? (_ctcAboveMatch
+          ? `Ask your new employer to confirm Day 1 health insurance cover in writing before you resign from your German role.`
+          : `Reply to the offer with one ask: "I am very interested. Can we discuss getting to ₹${_counterL}L? That is my lifestyle-match number for ${inCity}."`)
+      : '';
+
+  // Verdict pulse — fires when slider crosses a threshold boundary
+  const _verdictPos = dir==='in2de'
+    ? (_grossAboveComfort?'above_comfort':_grossAboveMatch?'above_match':_grossAboveFloor?'above_floor':'below')
+    : dir==='de2in' ? (_ctcAboveMatch?'above':'below') : '';
+  useEffect(()=>{
+    if(_verdictPos && _prevVerdictRef.current && _verdictPos!==_prevVerdictRef.current){
+      setVerdictPulse(true);
+      const t=setTimeout(()=>setVerdictPulse(false),1200);
+      return ()=>clearTimeout(t);
+    }
+    _prevVerdictRef.current=_verdictPos;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[_verdictPos]);
 
   // OPP computed vars
-  const _oppR = oppResults;
+  const _oppR = _liveOpp;
   const _oppRunwayMonths = _oppR?.runwayMonths ?? 0;
   const _oppRunwayText = _oppR?.runwayText ?? '';
   const _oppTargetGross = _oppR?.targetGross ?? 0;
@@ -1542,61 +1486,97 @@ export default function App() {
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Outfit:wght@400;500;600;700&display=swap');
         *{box-sizing:border-box;margin:0;padding:0}
-        body{font-family:'Outfit',sans-serif;background:${C.bg0};color:${C.t1};overflow-x:hidden}
+        body{font-family:'Outfit',sans-serif;background:${C.lbg};color:${C.ltxt};overflow-x:hidden}
         select{appearance:none;outline:none}
         input[type=range]{-webkit-appearance:none;width:100%;height:4px;border-radius:2px;cursor:pointer;outline:none;border:none}
         input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;height:20px;border-radius:50%;background:${C.gold};cursor:pointer;box-shadow:0 0 0 4px ${C.goldD},0 2px 6px rgba(0,0,0,.4)}
         @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
         @keyframes spin{to{transform:rotate(360deg)}}
+        @keyframes verdictPop{0%{transform:scale(1.025);box-shadow:0 0 0 3px rgba(255,255,255,0.08)}100%{transform:scale(1);box-shadow:none}}
         @keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
-        .jcard{transition:border-color .15s,background .15s,box-shadow .15s;cursor:pointer}
-        .jcard:hover{border-color:rgba(255,255,255,0.2)!important}
-        .ul-input{background:none;border:none;border-bottom:1px solid rgba(255,255,255,0.12);border-radius:0;outline:none;width:100%;font-family:'Outfit',sans-serif;color:#f0f4fa;padding:10px 0 8px;font-size:15px;font-weight:600;transition:border-color .15s}
+        .jcard{transition:border-color .18s,background .18s,box-shadow .18s;cursor:pointer}
+        .jcard:hover{border-color:rgba(0,0,0,0.18)!important;box-shadow:0 2px 12px rgba(0,0,0,.07)!important}
+        .ul-input{background:none;border:none;border-bottom:1px solid rgba(255,255,255,0.12);border-radius:0;outline:none;width:100%;font-family:'Outfit',sans-serif;color:#eef2f9;padding:10px 0 8px;font-size:15px;font-weight:600;transition:border-color .15s}
         .ul-input:focus{border-bottom-color:#f59e0b}
-        .ul-select{background:none;border:none;border-bottom:1px solid rgba(255,255,255,0.12);border-radius:0;outline:none;width:100%;font-family:'Outfit',sans-serif;color:#f0f4fa;padding:10px 0 8px;font-size:15px;cursor:pointer;transition:border-color .15s;appearance:none}
+        .ul-select{background:none;border:none;border-bottom:1px solid rgba(255,255,255,0.12);border-radius:0;outline:none;width:100%;font-family:'Outfit',sans-serif;color:#eef2f9;padding:10px 0 8px;font-size:15px;cursor:pointer;transition:border-color .15s;appearance:none}
         .ul-select:focus{border-bottom-color:#f59e0b}
         .pill-sm{flex:1;padding:8px 4px;text-align:center;border-radius:6px;font-family:'Outfit',sans-serif;font-size:12px;cursor:pointer;transition:all .15s;white-space:nowrap;border:1px solid transparent}
         @media(max-width:860px){.main-grid{grid-template-columns:1fr!important;gap:32px!important}}
-        @media(max-width:600px){.jband-grid{grid-template-columns:1fr!important}}
+        @media(max-width:760px){.jband-grid{grid-template-columns:1fr 1fr!important}}
+        @media(max-width:480px){.jband-grid{grid-template-columns:1fr!important}}
       `}</style>
 
-      {/* NAV */}
-      <nav style={{position:"fixed",top:0,left:0,right:0,zIndex:100,height:52,padding:"0 28px",display:"flex",alignItems:"center",justifyContent:"space-between",background:"rgba(8,12,20,.92)",backdropFilter:"blur(20px)",borderBottom:`1px solid ${C.b0}`}}>
-        <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:22,fontWeight:700,color:C.gold,letterSpacing:".5px"}}>TruePackage</div>
-        <div style={{display:"flex",alignItems:"center",gap:6,fontSize:12,color:C.t3}}>
-          <div style={{width:6,height:6,borderRadius:"50%",background:C.grn,boxShadow:`0 0 8px ${C.grn}`,animation:"pulse 2.5s ease-in-out infinite"}}/>
+      {/* NAV — light zone */}
+      <nav style={{position:"fixed",top:0,left:0,right:0,zIndex:100,height:52,padding:"0 28px",display:"flex",alignItems:"center",justifyContent:"space-between",background:C.lbg,borderBottom:`1px solid ${C.lborder}`}}>
+        <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:22,fontWeight:700,color:"#92400e",letterSpacing:".5px"}}>TruePackage</div>
+        <div style={{display:"flex",alignItems:"center",gap:6,fontSize:12,color:C.ltxt3}}>
+          <div style={{width:6,height:6,borderRadius:"50%",background:"#059669",boxShadow:"0 0 8px rgba(5,150,105,.5)",animation:"pulse 2.5s ease-in-out infinite"}}/>
           <span>{rateDate?`₹${rate.toFixed(2)} / € · ${rateDate}`:"Fetching live rate…"}</span>
         </div>
       </nav>
 
-      {/* JOURNEY BAND — full-bleed, sits just below nav */}
-      <div style={{position:"fixed",top:52,left:0,right:0,zIndex:99,background:"rgba(8,12,20,.96)",backdropFilter:"blur(20px)",borderBottom:`1px solid ${C.b0}`,padding:"12px 28px"}}>
-        <div style={{maxWidth:1060,margin:"0 auto"}}>
-          <p style={{fontSize:10,fontWeight:700,letterSpacing:"2.5px",textTransform:"uppercase",color:C.t3,marginBottom:8}}>Where are you in your journey?</p>
-          <div className="jband-grid" style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8}}>
+      {/* HERO — centered, full-width */}
+      <section style={{paddingTop:120,paddingBottom:72,background:C.lbg,textAlign:"center"}}>
+        <div style={{maxWidth:680,margin:"0 auto",padding:"0 28px"}}>
+          <h1 style={{fontFamily:"'Cormorant Garamond',serif",fontSize:"clamp(40px,5vw,68px)",fontWeight:700,lineHeight:1.06,color:C.ltxt,marginBottom:16}}>
+            Your offer looks great.<br/><span style={{color:"#92400e"}}>Until tax hits.</span>
+          </h1>
+          <p style={{fontSize:17,color:C.ltxt2,lineHeight:1.7,maxWidth:520,margin:"0 auto 40px"}}>
+            Built for Indians navigating Germany — see your real take-home, true living costs, and whether the numbers actually work.
+          </p>
+          <a href="#pick" style={{display:"inline-flex",alignItems:"center",gap:8,background:C.ltxt,color:C.lbg,borderRadius:10,padding:"13px 28px",fontFamily:"Outfit,sans-serif",fontSize:15,fontWeight:600,textDecoration:"none",letterSpacing:".2px"}}>
+            Pick your calculator →
+          </a>
+        </div>
+      </section>
+
+      {/* PICKER — 2×2 cards */}
+      <section id="pick" style={{background:C.lbg2,padding:"56px 28px 72px",borderTop:`1px solid ${C.lborder}`}}>
+        <div style={{maxWidth:880,margin:"0 auto"}}>
+          <p style={{fontSize:11,fontWeight:700,letterSpacing:"2.5px",textTransform:"uppercase",color:C.ltxt3,textAlign:"center",marginBottom:8}}>What do you need to figure out?</p>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16,marginTop:24}}>
             {([
-              {d:"in2de" as Dir, flag:"🇮🇳→🇩🇪", title:"Moving to Germany",   sub:"Have a German offer — is it real money?",      rgb:"99,179,237"},
-              {d:"de2in" as Dir, flag:"🇩🇪→🇮🇳", title:"Returning to India",   sub:"Evaluate an India CTC from Germany",            rgb:"245,158,11"},
-              {d:"opp"   as Dir, flag:"📋",        title:"Opportunity Card",     sub:"Moving without a job — how long do savings last?", rgb:"16,217,140"},
-            ]).map(item=>{
-              const on=dir===item.d;
-              return (
-                <button key={item.d} className="jcard" onClick={()=>{setDir(item.d);setResults(null);setOppResults(null);}}
-                  style={{display:"flex",alignItems:"center",gap:10,padding:"9px 14px",borderRadius:8,border:`1px solid ${on?`rgba(${item.rgb},.55)`:"rgba(255,255,255,0.07)"}`,background:on?`rgba(${item.rgb},.07)`:"transparent",fontFamily:"Outfit,sans-serif",textAlign:"left",boxShadow:on?`0 0 18px rgba(${item.rgb},.1)`:"none"}}>
-                  <span style={{fontSize:18,flexShrink:0}}>{item.flag}</span>
-                  <span style={{display:"flex",flexDirection:"column",gap:1}}>
-                    <span style={{fontSize:13,fontWeight:700,color:on?C.t1:C.t2,lineHeight:1.2}}>{item.title}</span>
-                    <span style={{fontSize:11,color:C.t3,lineHeight:1.3}}>{item.sub}</span>
-                  </span>
-                </button>
-              );
-            })}
+              {d:"in2de"   as Dir, icon:"IN→DE", title:"India → Germany",    q:"Is this German offer worth leaving India?",   tags:["Take-home","Tax","Parity threshold"],  accent:"#2563eb"},
+              {d:"de2in"   as Dir, icon:"DE→IN", title:"Germany → India",    q:"What CTC matches your German lifestyle?",    tags:["Match CTC","Purchasing power","Trade-offs"], accent:"#d97706"},
+              {d:"opp"     as Dir, icon:"RUNWAY", title:"Opportunity Card",   q:"How long will my savings last without a job?", tags:["Runway","Burn rate","Target salary"],  accent:"#059669"},
+              {d:"student" as Dir, icon:"STUDY",  title:"Student Planner",    q:"Can I actually afford to study in Germany?",  tags:["Sperrkonto","Part-time work","Funding gap"], accent:"#7c3aed"},
+            ]).map(item=>(
+              <button key={item.d} className="jcard" onClick={()=>{
+                setDir(item.d);setWhatIfGross(null);
+                setTimeout(()=>document.getElementById("calculator")?.scrollIntoView({behavior:"smooth",block:"start"}),50);
+              }} style={{display:"flex",flexDirection:"column",alignItems:"flex-start",gap:12,padding:"22px 24px",borderRadius:14,
+                border:`1px solid ${C.lborder}`,background:C.lbg,fontFamily:"Outfit,sans-serif",textAlign:"left",cursor:"pointer"}}>
+                <span style={{fontSize:11,fontWeight:800,letterSpacing:"1px",color:item.accent,background:`${item.accent}12`,border:`1px solid ${item.accent}30`,borderRadius:6,padding:"3px 8px"}}>{item.icon}</span>
+                <div>
+                  <div style={{fontSize:15,fontWeight:700,color:C.ltxt,marginBottom:5}}>{item.title}</div>
+                  <div style={{fontSize:13,color:item.accent,fontWeight:600,marginBottom:10,lineHeight:1.4}}>→ {item.q}</div>
+                  <div style={{display:"flex",gap:6,flexWrap:"wrap" as const}}>
+                    {item.tags.map(t=>(
+                      <span key={t} style={{fontSize:10,fontWeight:600,letterSpacing:".5px",padding:"3px 8px",borderRadius:20,background:`${item.accent}10`,color:item.accent,border:`1px solid ${item.accent}22`}}>{t}</span>
+                    ))}
+                  </div>
+                </div>
+              </button>
+            ))}
           </div>
         </div>
-      </div>
+      </section>
 
-      {/* HERO — pushed down past nav + band */}
-      <section style={{minHeight:"100vh",paddingTop:168,paddingBottom:80}}>
+      {/* CALCULATOR — entered after picking */}
+      <section id="calculator" style={{minHeight:"100vh",paddingTop:56,paddingBottom:80,background:C.lbg}}>
+        {/* Active tool breadcrumb */}
+        <div style={{maxWidth:1060,margin:"0 auto",padding:"0 28px 32px"}}>
+          <div style={{display:"flex",alignItems:"center",gap:12}}>
+            <button onClick={()=>document.getElementById("pick")?.scrollIntoView({behavior:"smooth",block:"start"})}
+              style={{background:"none",border:"none",cursor:"pointer",fontSize:12,color:C.ltxt3,fontFamily:"Outfit,sans-serif",padding:0,display:"flex",alignItems:"center",gap:4}}>
+              ← All calculators
+            </button>
+            <span style={{color:C.lborder}}>·</span>
+            <span style={{fontSize:12,fontWeight:600,color:{in2de:"#2563eb",de2in:"#d97706",opp:"#059669",student:"#7c3aed"}[dir]}}>
+              {{in2de:"India → Germany",de2in:"Germany → India",opp:"Opportunity Card",student:"Student Planner"}[dir]}
+            </span>
+          </div>
+        </div>
         <div className="main-grid" style={{maxWidth:1060,margin:"0 auto",padding:"0 28px",display:"grid",gridTemplateColumns:"1fr 380px",gap:72,alignItems:"start"}}>
 
           {/* ── LEFT: narrative + live output ── */}
@@ -1604,92 +1584,183 @@ export default function App() {
             {/* Glow blob */}
             <div style={{position:"absolute",width:400,height:300,borderRadius:"50%",background:dir==="in2de"?"radial-gradient(ellipse,rgba(99,179,237,.06) 0%,transparent 70%)":dir==="de2in"?"radial-gradient(ellipse,rgba(245,158,11,.06) 0%,transparent 70%)":"radial-gradient(ellipse,rgba(16,217,140,.06) 0%,transparent 70%)",pointerEvents:"none",transform:"translate(-80px,-60px)"}}/>
 
-            <h1 style={{fontFamily:"'Cormorant Garamond',serif",fontSize:"clamp(34px,4vw,58px)",fontWeight:700,lineHeight:1.08,color:C.t1,marginBottom:12,position:"relative"}}>
+            <h2 style={{fontFamily:"'Cormorant Garamond',serif",fontSize:"clamp(28px,3.2vw,44px)",fontWeight:700,lineHeight:1.1,color:C.ltxt,marginBottom:10,position:"relative"}}>
               {dir==="in2de"
-                ? <>"Your offer looks great.<br/><span style={{color:C.gold}}>Until tax hits.</span>"</>
+                ? <>"Germans keep only 52–57% of gross.<br/><span style={{color:"#2563eb"}}>Here's your real first payslip.</span>"</>
                 : dir==="de2in"
-                ? <>"That CTC looks great.<br/><span style={{color:C.gold}}>Until you break it down.</span>"</>
-                : <>"How long can you last?<br/><span style={{color:C.gold}}>And what offer do you need.</span>"</>
+                ? <>"Indian CTC is a marketing number.<br/><span style={{color:"#d97706"}}>Find the CTC that actually matches Germany.</span>"</>
+                : dir==="opp"
+                ? <>"No job yet? Here's how long you last.<br/><span style={{color:"#059669"}}>And the offer you must not go below.</span>"</>
+                : <>"Before you apply — know your numbers.<br/><span style={{color:"#7c3aed"}}>Sperrkonto, work limits, funding gap.</span>"</>
               }
-            </h1>
-            <p style={{fontSize:16,color:C.t2,lineHeight:1.75,marginBottom:36,maxWidth:460}}>
+            </h2>
+            <p style={{fontSize:15,color:C.ltxt2,lineHeight:1.7,marginBottom:32,maxWidth:440}}>
               {dir==="in2de"
-                ? "Germans typically keep only 52–57% of their gross salary. Move the slider and watch your real first payslip appear — tax, health, pension and all."
+                ? "Move the sliders and watch your real take-home appear — tax, health, pension and all. Then see your Germany Number: the gross where this move makes sense."
                 : dir==="de2in"
-                ? "Indian CTC is a marketing number. Tax, PF, and variable pay mean your take-home is often 40–55% of the headline. See the CTC you actually need to match your Germany lifestyle."
-                : "The Opportunity Card lets you move to Germany without a job. Enter your savings and see exactly how many months you have — and the minimum salary you need to accept when offers come in."}
+                ? "Tax, PF, and variable pay mean Indian take-home is often 40–55% of CTC. See exactly what offer you need to match your Germany lifestyle."
+                : dir==="opp"
+                ? "Enter your savings and lifestyle. See your exact runway in months and the minimum salary you can accept when offers arrive."
+                : "Germany requires €11,208 blocked before your visa. Part-time work covers only part of costs. See your real funding gap — semester by semester."}
             </p>
 
-            {/* ── LIVE NARRATIVE SENTENCE ── */}
-            {dir!=="opp"&&(()=>{
-              const net=de_live.net, gross=de_live.gross, effN=Math.round(net/gross*100);
-              const inNet=liveIn.net;
-              const gapEur=net-Math.round(inNet/rate);
-              const gapSign=gapEur>=0?"+":"";
-              const narrative = dir==="in2de"
-                ? `Your €${(gross/1000).toFixed(0)}K offer in ${deCity} nets you €${net.toLocaleString()}/mo — that's ${effN}% of gross. You're ${gapEur>=0?"€"+gapEur.toLocaleString()+" ahead of":"€"+Math.abs(gapEur).toLocaleString()+" short of"} parity with ${inCity}.`
-                : `Your €${(gross/1000).toFixed(0)}K German gross nets €${net.toLocaleString()}/mo. The India offer of ₹${(ctc/1e5).toFixed(0)}L nets ₹${inNet.toLocaleString()}/mo (≈ €${Math.round(inNet/rate).toLocaleString()}/mo). ${gapSign}€${Math.abs(gapEur).toLocaleString()}/mo difference.`;
-              return (
-                <div style={{borderLeft:`3px solid ${dir==="in2de"?"rgba(99,179,237,.5)":"rgba(245,158,11,.5)"}`,paddingLeft:16,marginBottom:32}}>
-                  <p style={{fontSize:15,color:C.t1,lineHeight:1.65,fontWeight:500}}>{narrative}</p>
-                  <p style={{fontSize:12,color:C.t3,marginTop:6}}>Updates live as you move the sliders →</p>
-                </div>
-              );
-            })()}
             {dir==="opp"&&(()=>{
-              const oppBurn=Math.round((1200+400+200+400+50));
+              const wgRange=(DE_RENT_RANGES['wg'] as Record<string,[number,number]>)[deCity]||DE_RENT_RANGES['wg']['Munich'];
+              const wgMid=Math.round((wgRange[0]+wgRange[1])/2);
+              const dc2=CITIES.de[deCity]||CITIES.de.Munich;
+              const oppBurnLo=wgMid+200+dc2.trans+400+25; // WG rent + groceries + transport + health + phone
+              const oppBurnHi=Math.round(oppBurnLo*1.25);  // +25% for eating out, misc, one-offs
               return (
-                <div style={{borderLeft:"3px solid rgba(16,217,140,.5)",paddingLeft:16,marginBottom:32}}>
-                  <p style={{fontSize:15,color:C.t1,lineHeight:1.65,fontWeight:500}}>
-                    A single person in {deCity} typically spends €{oppBurn.toLocaleString()}–€{(oppBurn+400).toLocaleString()}/mo on the basics. Enter your savings and lifestyle to see your exact runway.
+                <div style={{borderLeft:"3px solid rgba(5,150,105,.4)",paddingLeft:16,marginBottom:32}}>
+                  <p style={{fontSize:15,color:C.ltxt,lineHeight:1.65,fontWeight:500}}>
+                    A single person in a WG room in {deCity} typically spends €{oppBurnLo.toLocaleString()}–€{oppBurnHi.toLocaleString()}/mo (rent, groceries, transit, health). Enter your savings and lifestyle to see your exact runway.
                   </p>
                 </div>
               );
             })()}
+            {dir==="student"&&(
+              <div style={{marginBottom:32}}>
+                <div style={{borderLeft:"3px solid rgba(124,58,237,.5)",paddingLeft:16,marginBottom:24}}>
+                  <p style={{fontSize:15,color:C.t1,lineHeight:1.65,fontWeight:500}}>
+                    A 2-year master's in Germany requires a Blocked Account (€11,208), student health insurance (~€125/mo), and semester fees (€150–350/semester). Most students underestimate the funding gap by ₹3–5 lakh.
+                  </p>
+                </div>
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:20}}>
+                  {[
+                    {label:"Blocked Account required",val:"€11,208",sub:"per year · shown at visa appointment",c:"#a78bfa"},
+                    {label:"Student health insurance",val:"~€125/mo",sub:"TK / AOK / DAK student tariff",c:"#a78bfa"},
+                    {label:"Part-time earnings (realistic)",val:"€500–700/mo",sub:"120 days/yr limit · Minijob + SHK",c:"#10d98c"},
+                    {label:"Monthly funding gap (typical)",val:"€400–800/mo",sub:"family support needed after work income",c:"#f59e0b"},
+                  ].map(x=>(
+                    <div key={x.label} style={{background:"rgba(124,58,237,.06)",border:"1px solid rgba(124,58,237,.18)",borderRadius:12,padding:"14px 16px"}}>
+                      <div style={{fontSize:11,color:C.t3,marginBottom:4}}>{x.label}</div>
+                      <div style={{fontSize:18,fontWeight:700,color:x.c,marginBottom:2}}>{x.val}</div>
+                      <div style={{fontSize:11,color:C.t3}}>{x.sub}</div>
+                    </div>
+                  ))}
+                </div>
+                <div style={{background:"rgba(124,58,237,.08)",border:"1px solid rgba(124,58,237,.22)",borderRadius:12,padding:"16px 18px",display:"flex",alignItems:"flex-start",gap:12}}>
+                  <span style={{fontSize:20,flexShrink:0}}>🚧</span>
+                  <div>
+                    <div style={{fontSize:14,fontWeight:700,color:"#a78bfa",marginBottom:4}}>Full Student Planner — coming soon</div>
+                    <div style={{fontSize:13,color:C.t3,lineHeight:1.6}}>Enter your city, program duration, family funding capacity, and savings. Get your total upfront cash needed, semester-by-semester burn rate, part-time offset, and post-graduation job-seeker runway.</div>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Live preview — tax waterfall */}
-            {dir!=="opp"&&(()=>{
+            {(dir==="in2de"||dir==="de2in")&&(()=>{
               const gross=de_live.gross,net=de_live.net,tax=de_live.tax,hn=de_live.health+de_live.nursing,pen=de_live.pension,soli=de_live.soli,kirche=de_live.kirche;
               const netPct=net/gross*100,taxPct=tax/gross*100,hnPct=hn/gross*100,penPct=pen/gross*100;
               const miniBar=(val:number,color:string)=>(
-                <div style={{flex:1,height:3,background:"rgba(255,255,255,.04)",borderRadius:2,overflow:"hidden",marginLeft:8}}>
+                <div style={{flex:1,height:3,background:"rgba(0,0,0,.08)",borderRadius:2,overflow:"hidden",marginLeft:8}}>
                   <div style={{height:"100%",background:color,borderRadius:2,width:`${Math.min(100,val/gross*100*3)}%`,transition:"width .4s"}}/>
                 </div>
               );
+              // de2in: hero shows India take-home with EUR/INR toggle
+              const inNetINR=liveIn.net; // ₹/mo
+              const inNetEUR=Math.round(inNetINR/rate);
+              const heroVal=dir==="de2in"?(heroInEur?`€${inNetEUR.toLocaleString()}`:`₹${inNetINR.toLocaleString()}`):(`€${net.toLocaleString()}`);
+              const heroSub=dir==="de2in"
+                ?(heroInEur?`≈ ₹${inNetINR.toLocaleString()}/mo at today's rate`:`≈ €${inNetEUR.toLocaleString()}/mo at today's rate`)
+                :`from €${gross.toLocaleString()} gross · only ${netPct.toFixed(0)}% reaches your account`;
+              const heroLabel=dir==="de2in"?`India take-home on ₹${(ctc/1e5).toFixed(0)}L CTC`:"You take home";
               return (
                 <div style={{marginBottom:28}}>
                   {/* Hero take-home — no box, just text */}
                   <div style={{marginBottom:20}}>
-                    <div style={{fontSize:11,fontWeight:700,letterSpacing:"2px",textTransform:"uppercase",color:C.t3,marginBottom:6,display:"flex",alignItems:"center",gap:8}}>
-                      You take home
-                      <span style={{display:"flex",alignItems:"center",gap:4,fontSize:10,color:C.grn,fontWeight:600}}>
-                        <span style={{width:5,height:5,borderRadius:"50%",background:C.grn,display:"inline-block",animation:"pulse 2.5s ease-in-out infinite"}}/>live
+                    <div style={{fontSize:11,fontWeight:700,letterSpacing:"2px",textTransform:"uppercase",color:C.ltxt3,marginBottom:6,display:"flex",alignItems:"center",gap:8,flexWrap:"wrap" as const}}>
+                      {heroLabel}
+                      <span style={{display:"flex",alignItems:"center",gap:4,fontSize:10,color:"#059669",fontWeight:600}}>
+                        <span style={{width:5,height:5,borderRadius:"50%",background:"#059669",display:"inline-block",animation:"pulse 2.5s ease-in-out infinite"}}/>live
                       </span>
+                      {dir==="de2in"&&(
+                        <button onClick={()=>setHeroInEur(p=>!p)} style={{marginLeft:"auto",fontSize:10,fontWeight:600,padding:"2px 8px",borderRadius:20,border:`1px solid ${C.lborder}`,background:"rgba(0,0,0,.05)",color:C.ltxt2,cursor:"pointer",fontFamily:"Outfit,sans-serif",letterSpacing:"0.5px"}}>
+                          {heroInEur?"₹ INR":"€ EUR"}
+                        </button>
+                      )}
                     </div>
                     <div style={{display:"flex",alignItems:"baseline",gap:8,marginBottom:4}}>
-                      <span style={{fontFamily:"'Cormorant Garamond',serif",fontSize:64,fontWeight:700,color:C.gold,lineHeight:1}}>€{net.toLocaleString()}</span>
-                      <span style={{fontSize:16,color:C.t3,fontWeight:500}}>/month</span>
+                      <span style={{fontFamily:"'Cormorant Garamond',serif",fontSize:64,fontWeight:700,color:"#92400e",lineHeight:1}}>{heroVal}</span>
+                      <span style={{fontSize:16,color:C.ltxt3,fontWeight:500}}>/month</span>
                     </div>
-                    <div style={{fontSize:13,color:C.t3}}>from <span style={{color:C.t2}}>€{gross.toLocaleString()}</span> gross · only <span style={{color:C.gold,fontWeight:600}}>{netPct.toFixed(0)}%</span> reaches your account</div>
+                    <div style={{fontSize:13,color:C.ltxt3}}>{heroSub}</div>
                   </div>
 
-                  {/* Waterfall bar — wider, taller */}
-                  <div style={{display:"flex",height:14,borderRadius:7,overflow:"hidden",marginBottom:14,gap:2}}>
-                    <div style={{width:`${netPct}%`,background:C.gold,transition:"width .4s"}} title={`Net ${netPct.toFixed(0)}%`}/>
-                    <div style={{width:`${taxPct}%`,background:C.red,transition:"width .4s"}} title={`Tax ${taxPct.toFixed(0)}%`}/>
-                    <div style={{width:`${hnPct}%`,background:"rgba(245,91,91,.5)",transition:"width .4s"}} title={`Health+nursing ${hnPct.toFixed(0)}%`}/>
-                    <div style={{width:`${penPct}%`,background:"rgba(138,155,184,.4)",transition:"width .4s"}} title={`Pension ${penPct.toFixed(0)}%`}/>
-                    <div style={{flex:1,background:"rgba(255,255,255,.04)"}}/>
+                  {/* Compact deduction summary — always visible */}
+                  <div style={{display:"flex",height:8,borderRadius:4,overflow:"hidden",marginBottom:10,gap:2}}>
+                    {dir==="de2in"?(()=>{
+                      const inGross=Math.round(ctc/12),inTax=liveIn.tax,inPF=liveIn.pf,inNet=liveIn.net;
+                      const inNetPct=inNet/inGross*100,inTaxPct=inTax/inGross*100,inPFPct=inPF/inGross*100;
+                      return (<>
+                        <div style={{width:`${inNetPct}%`,background:C.gold,transition:"width .4s"}}/>
+                        <div style={{width:`${inTaxPct}%`,background:C.red,transition:"width .4s"}}/>
+                        <div style={{width:`${inPFPct}%`,background:"rgba(138,155,184,.4)",transition:"width .4s"}}/>
+                        <div style={{flex:1,background:"rgba(0,0,0,.06)"}}/>
+                      </>);
+                    })():(<>
+                      <div style={{width:`${netPct}%`,background:C.gold,transition:"width .4s"}}/>
+                      <div style={{width:`${taxPct}%`,background:C.red,transition:"width .4s"}}/>
+                      <div style={{width:`${hnPct}%`,background:"rgba(245,91,91,.5)",transition:"width .4s"}}/>
+                      <div style={{width:`${penPct}%`,background:"rgba(138,155,184,.4)",transition:"width .4s"}}/>
+                      <div style={{flex:1,background:"rgba(0,0,0,.06)"}}/>
+                    </>)}
                   </div>
-                  {/* Legend */}
-                  <div style={{display:"flex",gap:14,marginBottom:20,fontSize:11,color:C.t3,flexWrap:"wrap" as const}}>
+                  <button onClick={()=>setShowDeductions(p=>!p)}
+                    style={{display:"flex",alignItems:"center",gap:6,background:"none",border:"none",padding:0,cursor:"pointer",fontFamily:"Outfit,sans-serif",fontSize:12,color:C.ltxt3,marginBottom:showDeductions?12:0}}>
+                    <span style={{fontSize:10,transition:"transform .2s",display:"inline-block",transform:showDeductions?"rotate(90deg)":"none"}}>▶</span>
+                    {showDeductions?"Hide deductions":"How is this calculated?"}
+                  </button>
+
+                  {showDeductions&&(dir==="de2in"?(()=>{
+                    const inGross=Math.round(ctc/12);
+                    const inTax=liveIn.tax,inPF=liveIn.pf,inNet=liveIn.net;
+                    const inTaxPct=inTax/inGross*100,inPFPct=inPF/inGross*100,inNetPct=inNet/inGross*100;
+                    const inMiniBar=(val:number,color:string)=>(
+                      <div style={{flex:1,height:3,background:"rgba(0,0,0,.08)",borderRadius:2,overflow:"hidden",marginLeft:8}}>
+                        <div style={{height:"100%",background:color,borderRadius:2,width:`${Math.min(100,val/inGross*100*3)}%`,transition:"width .4s"}}/>
+                      </div>
+                    );
+                    return (<>
+                      <div style={{display:"flex",gap:14,marginBottom:16,fontSize:11,color:C.ltxt3,flexWrap:"wrap" as const}}>
+                        {[{c:C.gold,l:`Take-home ${inNetPct.toFixed(0)}%`},{c:C.red,l:`Tax ${inTaxPct.toFixed(0)}%`},{c:"rgba(138,155,184,.4)",l:`PF ${inPFPct.toFixed(0)}%`}].map(x=>(
+                          <span key={x.l} style={{display:"flex",alignItems:"center",gap:4}}><span style={{width:8,height:8,borderRadius:2,background:x.c,display:"inline-block"}}/>{x.l}</span>
+                        ))}
+                      </div>
+                      <div style={{display:"flex",flexDirection:"column",gap:10,paddingBottom:16,borderBottom:`1px solid ${C.lborder}`}}>
+                        {[
+                          {lbl:"Income tax",sub:`${inRegime==="new"?"New regime FY26":"Old regime"} · zero tax up to ₹12L`,val:inTax,sym:"₹",color:C.red,pct:inTaxPct,mini:inMiniBar},
+                          {lbl:"Provident Fund",sub:"Employee PF — 12% of basic, locked till retirement",val:inPF,sym:"₹",color:"rgba(138,155,184,.6)",pct:inPFPct,mini:inMiniBar},
+                        ].map(r=>(
+                          <div key={r.lbl}>
+                            <div style={{display:"flex",alignItems:"baseline",justifyContent:"space-between",marginBottom:2}}>
+                              <span style={{fontSize:13,color:C.ltxt2,fontWeight:500}}>{r.lbl}</span>
+                              <span style={{fontSize:14,fontWeight:700,color:C.ltxt}}>−{r.sym}{r.val.toLocaleString()}</span>
+                            </div>
+                            <div style={{display:"flex",alignItems:"center",gap:8}}>
+                              <span style={{fontSize:11,color:C.ltxt3,flex:1}}>{r.sub}</span>
+                              {r.mini(r.val,r.color)}
+                              <span style={{fontSize:11,color:C.ltxt3,minWidth:26,textAlign:"right"}}>{r.pct.toFixed(0)}%</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",paddingTop:14}}>
+                        <div style={{fontSize:13,color:C.ltxt3}}>vs your German net</div>
+                        <span style={{fontSize:14,fontWeight:700,color:net>inNet/rate*1?C.grn:C.red}}>
+                          {net>Math.round(inNet/rate)?`+€${(net-Math.round(inNet/rate)).toLocaleString()}/mo ahead`:`−€${(Math.round(inNet/rate)-net).toLocaleString()}/mo behind`}
+                        </span>
+                      </div>
+                    </>);
+                  })():(
+                  <>
+                  <div style={{display:"flex",gap:14,marginBottom:16,fontSize:11,color:C.ltxt3,flexWrap:"wrap" as const}}>
                     {[{c:C.gold,l:`Net ${netPct.toFixed(0)}%`},{c:C.red,l:`Tax ${taxPct.toFixed(0)}%`},{c:"rgba(245,91,91,.5)",l:`Health ${hnPct.toFixed(0)}%`},{c:"rgba(138,155,184,.4)",l:`Pension ${penPct.toFixed(0)}%`}].map(x=>(
                       <span key={x.l} style={{display:"flex",alignItems:"center",gap:4}}><span style={{width:8,height:8,borderRadius:2,background:x.c,display:"inline-block"}}/>{x.l}</span>
                     ))}
                   </div>
-
-                  {/* Itemised deductions — flush, no box */}
-                  <div style={{display:"flex",flexDirection:"column",gap:10,paddingBottom:16,borderBottom:`1px solid rgba(255,255,255,.06)`}}>
+                  <div style={{display:"flex",flexDirection:"column",gap:10,paddingBottom:16,borderBottom:`1px solid ${C.lborder}`}}>
                     {[
                       {lbl:"Income tax",sub:"Lohnsteuer · progressive from 14%",val:tax,color:C.red},
                       {lbl:"Health + nursing",sub:"Kranken- & Pflegeversicherung",val:hn,color:"rgba(245,91,91,.6)"},
@@ -1697,61 +1768,191 @@ export default function App() {
                     ].map(r=>(
                       <div key={r.lbl}>
                         <div style={{display:"flex",alignItems:"baseline",justifyContent:"space-between",marginBottom:2}}>
-                          <span style={{fontSize:13,color:C.t2,fontWeight:500}}>{r.lbl}</span>
-                          <span style={{fontSize:14,fontWeight:700,color:C.t1}}>−€{r.val.toLocaleString()}</span>
+                          <span style={{fontSize:13,color:C.ltxt2,fontWeight:500}}>{r.lbl}</span>
+                          <span style={{fontSize:14,fontWeight:700,color:C.ltxt}}>−€{r.val.toLocaleString()}</span>
                         </div>
                         <div style={{display:"flex",alignItems:"center",gap:8}}>
-                          <span style={{fontSize:11,color:C.t3,flex:1}}>{r.sub}</span>
+                          <span style={{fontSize:11,color:C.ltxt3,flex:1}}>{r.sub}</span>
                           {miniBar(r.val,r.color)}
                           <span style={{fontSize:11,color:C.t3,minWidth:26,textAlign:"right"}}>{(r.val/gross*100).toFixed(0)}%</span>
                         </div>
                       </div>
                     ))}
                   </div>
-
-                  {/* Gap + extras */}
-                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",paddingTop:14,marginBottom:results?10:0}}>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",paddingTop:14,marginBottom:10}}>
                     <div>
-                      <div style={{fontSize:13,color:C.t3}}>Monthly gap from gross</div>
-                      <div style={{fontSize:11,color:C.t3,marginTop:1}}>Deductions that won't appear in your bank</div>
+                      <div style={{fontSize:13,color:C.ltxt3}}>Monthly gap from gross</div>
+                      <div style={{fontSize:11,color:C.ltxt3,marginTop:1}}>Deductions that won't appear in your bank</div>
                     </div>
                     <span style={{fontSize:16,fontWeight:700,color:C.red}}>−€{de_live.gap.toLocaleString()}</span>
                   </div>
-
-                  {results
-                    ? <div style={{display:"flex",flexDirection:"column",gap:8,marginTop:4}}>
-                        <div style={{display:"flex",justifyContent:"space-between",fontSize:13}}>
-                          <span style={{color:C.t3}}>⛪ Church tax {noKirche?"(opted out)":"(avoidable)"}</span>
-                          <span style={{fontWeight:600,color:noKirche?C.grn:C.gold}}>{noKirche?`+€${kirche.toLocaleString()}/mo saved`:`−€${kirche.toLocaleString()}/mo`}</span>
-                        </div>
-                        <div style={{display:"flex",justifyContent:"space-between",fontSize:13}}>
-                          <span style={{color:C.t3}}>🧹 Domestic help delta</span>
-                          <span style={{fontWeight:600,color:C.t2}}>−€{helpPreview}/mo equiv</span>
-                        </div>
-                        <div style={{display:"flex",justifyContent:"space-between",fontSize:13,filter:"blur(3px)",userSelect:"none" as const}}>
-                          <span style={{color:C.t3}}>💡 Steuerklasse 3 tip</span>
-                          <span style={{fontWeight:600,color:C.grn}}>+€{sk3Preview.toLocaleString()}/mo</span>
-                        </div>
-                      </div>
-                    : <div style={{fontSize:12,color:C.t3,marginTop:6}}>
-                        Church tax, Steuerklasse 3 &amp; 2 more after you calculate →
-                      </div>
-                  }
+                  <div style={{display:"flex",flexDirection:"column",gap:8,marginTop:4}}>
+                    <div style={{display:"flex",justifyContent:"space-between",fontSize:13}}>
+                      <span style={{color:C.ltxt3}}>⛪ Church tax</span>
+                      <span style={{fontWeight:600,color:C.grn}}>€0 — not applicable</span>
+                    </div>
+                    <div style={{display:"flex",justifyContent:"space-between",fontSize:13}}>
+                      <span style={{color:C.ltxt3}}>🧹 Domestic help delta</span>
+                      <span style={{fontWeight:600,color:C.ltxt2}}>−€{helpPreview}/mo equiv</span>
+                    </div>
+                    <div style={{display:"flex",justifyContent:"space-between",fontSize:13,filter:"blur(3px)",userSelect:"none" as const}}>
+                      <span style={{color:C.ltxt3}}>💡 Steuerklasse 3 tip</span>
+                      <span style={{fontWeight:600,color:C.grn}}>+€{sk3Preview.toLocaleString()}/mo</span>
+                    </div>
+                  </div>
+                  </>))}
                 </div>
               );
             })()}
 
-            <p style={{fontSize:12,color:C.t3,display:"flex",flexWrap:"wrap" as const,gap:8,marginTop:8}}>
-              <span>✦ Built by Supradeep · fellow expat</span><span>·</span><span>Free forever</span><span>·</span><span>Nothing stored</span>
-            </p>
+
+            {/* ── DECISION VERDICT CARD (in2de / de2in) ── */}
+            {(dir==="in2de"||dir==="de2in")&&_thr&&(
+              <div style={{marginTop:32,borderRadius:18,border:`2px solid ${verdictBorder}`,background:verdictBg,padding:"26px 26px 20px",animation:verdictPulse?"verdictPop 0.6s ease":undefined}}>
+                <div style={{fontSize:11,fontWeight:800,letterSpacing:"2px",textTransform:"uppercase" as const,color:verdictColor,marginBottom:10}}>Your Decision</div>
+                <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:34,fontWeight:700,color:verdictColor,lineHeight:1.15,marginBottom:6}}>{verdictHeadline}</div>
+                <div style={{fontSize:14,color:C.ltxt2,lineHeight:1.6,marginBottom:18}}>{verdictSub}</div>
+                <div style={{display:"flex",gap:8,flexWrap:"wrap" as const,marginBottom:18}}>
+                  {dir==="in2de"&&[
+                    {label:"Take-home",val:`€${de_live.net.toLocaleString()}/mo`},
+                    {label:"Your comfort number",val:`€${_comfortK}K gross`},
+                    {label:"Break-even",val:_liveBe?.ok?`Yr ${_liveBe.yrs}`:"No surplus"},
+                  ].map(kv=>(
+                    <div key={kv.label} style={{flex:1,minWidth:100,background:"rgba(0,0,0,.05)",borderRadius:10,padding:"12px 14px"}}>
+                      <div style={{fontSize:10,color:C.ltxt3,marginBottom:4}}>{kv.label}</div>
+                      <div style={{fontSize:15,fontWeight:700,color:C.ltxt}}>{kv.val}</div>
+                    </div>
+                  ))}
+                  {dir==="de2in"&&_match&&[
+                    {label:"Your net (DE)",val:`€${de_live.net.toLocaleString()}/mo`},
+                    {label:"Match CTC",val:`₹${(_match.match/1e5).toFixed(1)}L`},
+                    {label:"India net",val:`₹${_liveIn.net.toLocaleString()}/mo`},
+                  ].map(kv=>(
+                    <div key={kv.label} style={{flex:1,minWidth:100,background:"rgba(0,0,0,.05)",borderRadius:10,padding:"12px 14px"}}>
+                      <div style={{fontSize:10,color:C.ltxt3,marginBottom:4}}>{kv.label}</div>
+                      <div style={{fontSize:15,fontWeight:700,color:C.ltxt}}>{kv.val}</div>
+                    </div>
+                  ))}
+                </div>
+                {oneThingText&&(
+                  <div style={{background:"rgba(232,160,32,0.08)",border:"1px solid rgba(232,160,32,0.22)",borderRadius:12,padding:"14px 16px",marginBottom:16}}>
+                    <div style={{fontSize:10,fontWeight:700,letterSpacing:"1.8px",textTransform:"uppercase" as const,color:"#e8a020",marginBottom:7}}>One thing to do today</div>
+                    <div style={{fontSize:13,color:C.ltxt,lineHeight:1.65}}>{oneThingText}</div>
+                  </div>
+                )}
+                <button onClick={()=>{navigator.clipboard.writeText(window.location.href);setUrlShared(true);setTimeout(()=>setUrlShared(false),2000);}}
+                  style={{background:"none",border:`1px solid ${verdictBorder}`,borderRadius:20,padding:"5px 14px",fontSize:11,fontWeight:600,color:C.ltxt2,cursor:"pointer",fontFamily:"Outfit,sans-serif"}}>
+                  {urlShared?"✓ Copied!":"🔗 Share these numbers"}
+                </button>
+              </div>
+            )}
+
+            {/* ── 3-CARD GRID (in2de / de2in) ── */}
+            {(dir==="in2de"||dir==="de2in")&&_thr&&(()=>{
+              const de=_liveDe,india=_liveIn;
+              const netPct=Math.round(de.net/de.gross*100);
+              const blueCardStatus=gross>=45300?'eligible':gross>=41042?'possible':'ineligible';
+              const blueCardBadge=blueCardStatus==='eligible'?'✓ Blue Card eligible':blueCardStatus==='possible'?'⚡ Blue Card possible':'⚠ Below Blue Card';
+              const blueCardColor=blueCardStatus==='eligible'?'#00c98b':'#e8a020';
+              const cards=[
+                {
+                  id:'money' as const,
+                  badge:'€€€',accent:'#2563eb',
+                  title:'Your Money',
+                  metric:`€${de.net.toLocaleString()}/mo`,
+                  sub:`${netPct}% of gross reaches your account`,
+                  tags:['Tax','Health & nursing','Pension'],
+                },
+                {
+                  id:'breakdown' as const,
+                  badge:'≡',accent:'#d97706',
+                  title:'Full Breakdown',
+                  metric:dir==='in2de'?`−€${de.gap.toLocaleString()}/mo`:`₹${india.net.toLocaleString()}/mo`,
+                  sub:'Deductions + living cost comparison',
+                  tags:['Deductions','Lifestyle costs','Scenarios'],
+                },
+                {
+                  id:'nextsteps' as const,
+                  badge:'✓',accent:C.gold,
+                  title:'Before You Sign',
+                  metric:blueCardBadge,
+                  metricColor:blueCardColor,
+                  sub:'Things to sort before you accept',
+                  tags:['Deposit ready?','Health insurance','Address reg.'],
+                },
+              ];
+              return (
+                <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:12,marginTop:14}}>
+                  {cards.map(card=>(
+                    <button key={card.id} className="jcard" onClick={()=>setOpenModal(card.id)}
+                      style={{display:"flex",flexDirection:"column",alignItems:"flex-start",gap:10,padding:"18px 18px 14px",borderRadius:14,border:`1px solid ${C.lborder}`,background:C.lbg,cursor:"pointer",textAlign:"left" as const,width:"100%"}}>
+                      <span style={{fontSize:13,fontWeight:800,color:card.accent,background:`${card.accent}15`,padding:"3px 8px",borderRadius:6}}>{card.badge}</span>
+                      <div style={{fontSize:13,fontWeight:700,color:C.ltxt,lineHeight:1.3}}>{card.title}</div>
+                      <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:20,fontWeight:700,color:card.metricColor??card.accent,lineHeight:1.2}}>{card.metric}</div>
+                      <div style={{fontSize:11,color:C.ltxt3,lineHeight:1.45}}>{card.sub}</div>
+                      <div style={{display:"flex",flexWrap:"wrap" as const,gap:4,marginTop:2}}>
+                        {card.tags.map(t=>(
+                          <span key={t} style={{fontSize:10,fontWeight:600,padding:"2px 7px",borderRadius:20,background:`${card.accent}15`,color:card.accent}}>{t}</span>
+                        ))}
+                      </div>
+                      <div style={{fontSize:11,fontWeight:600,color:card.accent,marginTop:2}}>Open →</div>
+                    </button>
+                  ))}
+                </div>
+              );
+            })()}
+
+            {/* ── OPP VERDICT CARD + 2-CARD GRID ── */}
+            {dir==="opp"&&_oppR&&(
+              <>
+                <div style={{marginTop:32,borderRadius:18,border:`2px solid ${_oppPinnedColor==='#00c98b'?'rgba(0,201,139,0.35)':_oppPinnedColor==='#e8a020'?'rgba(232,160,32,0.35)':'rgba(255,91,91,0.35)'}`,background:_oppPinnedColor==='#00c98b'?'rgba(0,201,139,0.07)':_oppPinnedColor==='#e8a020'?'rgba(232,160,32,0.07)':'rgba(255,91,91,0.07)',padding:"26px 26px 20px"}}>
+                  <div style={{fontSize:11,fontWeight:800,letterSpacing:"2px",textTransform:"uppercase" as const,color:_oppPinnedColor,marginBottom:10}}>Runway Verdict</div>
+                  <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:34,fontWeight:700,color:_oppPinnedColor,lineHeight:1.15,marginBottom:6}}>{_oppPinnedText}</div>
+                  <div style={{fontSize:14,color:C.ltxt2,lineHeight:1.6,marginBottom:18}}>{_oppConfidenceText}</div>
+                  <div style={{display:"flex",gap:8,flexWrap:"wrap" as const}}>
+                    {[
+                      {label:"Runway",val:_oppRunwayText},
+                      {label:"Target gross",val:`€${_oppTargetGrossK}K/yr`},
+                      {label:"Monthly burn",val:`€${_oppMonthlyBurn.toLocaleString()}/mo`},
+                    ].map(kv=>(
+                      <div key={kv.label} style={{flex:1,minWidth:90,background:"rgba(0,0,0,.05)",borderRadius:10,padding:"12px 14px"}}>
+                        <div style={{fontSize:10,color:C.ltxt3,marginBottom:4}}>{kv.label}</div>
+                        <div style={{fontSize:15,fontWeight:700,color:C.ltxt}}>{kv.val}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginTop:14}}>
+                  {[
+                    {id:'runway' as const,badge:'📊',accent:'#2563eb',title:'Runway Details',metric:_oppRunwayText,sub:`€${savings.toLocaleString()} → ${_oppRunwayMonths} months`,tags:['Monthly burn','Lifestyle costs','Target gross']},
+                    {id:'prelanding' as const,badge:'✓',accent:C.gold,title:'Before You Land',metric:'5 checks',sub:'Pre-departure action list',tags:['Bank account','Job search','Health ins.']},
+                  ].map(card=>(
+                    <button key={card.id} className="jcard" onClick={()=>setOpenModal(card.id)}
+                      style={{display:"flex",flexDirection:"column",alignItems:"flex-start",gap:10,padding:"18px 18px 14px",borderRadius:14,border:`1px solid ${C.lborder}`,background:C.lbg,cursor:"pointer",textAlign:"left" as const,width:"100%"}}>
+                      <span style={{fontSize:13,fontWeight:800,color:card.accent,background:`${card.accent}15`,padding:"3px 8px",borderRadius:6}}>{card.badge}</span>
+                      <div style={{fontSize:13,fontWeight:700,color:C.ltxt}}>{card.title}</div>
+                      <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:22,fontWeight:700,color:card.accent,lineHeight:1.2}}>{card.metric}</div>
+                      <div style={{fontSize:11,color:C.ltxt3}}>{card.sub}</div>
+                      <div style={{display:"flex",flexWrap:"wrap" as const,gap:4,marginTop:2}}>
+                        {card.tags.map(t=>(
+                          <span key={t} style={{fontSize:10,fontWeight:600,padding:"2px 7px",borderRadius:20,background:`${card.accent}15`,color:card.accent}}>{t}</span>
+                        ))}
+                      </div>
+                      <div style={{fontSize:11,fontWeight:600,color:card.accent,marginTop:2}}>Open →</div>
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+
           </div>
 
-          {/* ── RIGHT: slim control strip ── */}
-          <div style={{position:"sticky",top:148,alignSelf:"start"}}>
+          {/* ── RIGHT: slim control strip — dark card ── */}
+          <div style={{position:"sticky",top:72,alignSelf:"start",background:C.bg1,borderRadius:20,padding:"18px 18px",border:`1px solid ${C.b0}`}}>
             {(()=>{
               // Helpers
               const sec=(title:string,hint?:string)=>(
-                <div style={{marginBottom:4}}>
+                <div style={{marginBottom:2}}>
                   <div style={{fontSize:10,fontWeight:700,letterSpacing:"2px",textTransform:"uppercase" as const,color:C.t3}}>{title}</div>
                   {hint&&<div style={{fontSize:11,color:C.t3,marginTop:2,lineHeight:1.5}}>{hint}</div>}
                 </div>
@@ -1763,9 +1964,9 @@ export default function App() {
                   {label}
                 </button>
               );
-              const divider=()=><div style={{height:1,background:"rgba(255,255,255,.06)",margin:"18px 0"}}/>;
+              const divider=()=><div style={{height:1,background:"rgba(255,255,255,.06)",margin:"12px 0"}}/>;
               const sliderField=(lbl:string,val:number,setter:(v:number)=>void,min:number,max:number,step:number,fmtVal:string,ctx:string,inputKey:string)=>(
-                <div style={{marginBottom:20}}>
+                <div style={{marginBottom:12}}>
                   <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-end",marginBottom:2}}>
                     <span style={{fontSize:13,color:C.t2,fontWeight:500}}>{lbl}</span>
                     <input className="currency-input" type="text"
@@ -1812,18 +2013,6 @@ export default function App() {
                       </div>
                   }
 
-                  {dir==="in2de"&&<>
-                    <div style={{position:"relative",marginBottom:8}}>
-                      <select className="ul-select" value={field} onChange={e=>setField(e.target.value)}>
-                        {['Software Engineer / IT','Data / ML Engineer','Mechanical Engineer','Electrical Engineer','Civil / Structural Engineer','Finance / Accounting','Product Manager','Other'].map(o=><option key={o} style={{background:"#0b1020"}}>{o}</option>)}
-                      </select>
-                      <span style={{position:"absolute",right:0,bottom:10,color:C.t3,pointerEvents:"none",fontSize:11}}>▾</span>
-                    </div>
-                    <div style={{display:"flex",gap:6,marginBottom:4}}>
-                      {(['Junior (0–3 yrs)','Mid (4–8 yrs)','Senior (8+ yrs)'] as const).map(opt=>pill(opt,seniority===opt,()=>setSeniority(opt),"rgba(99,179,237,.8)"))}
-                    </div>
-                    {sub("Used to benchmark your offer against actual {field} salaries in {deCity}.".replace("{field}",field.split(" /")[0]).replace("{deCity}",deCity))}
-                  </>}
 
                   {dir==="opp"&&<>
                     {divider()}
@@ -1834,18 +2023,10 @@ export default function App() {
                     </div>
                     <input type="range" min={2000} max={30000} step={500} value={savings} onChange={e=>setSavings(+e.target.value)} style={{backgroundImage:sliderBg(savings,2000,30000)}}/>
                     {sub(`€${(savings/1000).toFixed(0)}K in ${deCity} covers roughly ${Math.floor(savings/2200)}–${Math.ceil(savings/1800)} months of basic living.`)}
-                    <div onClick={()=>setNoKirche(p=>!p)} style={{display:"flex",alignItems:"flex-start",gap:12,cursor:"pointer",padding:"14px 0 2px"}}>
-                      <div style={{width:18,height:18,borderRadius:4,border:`2px solid ${noKirche?C.grn:"rgba(255,255,255,.2)"}`,background:noKirche?C.grn:"transparent",flexShrink:0,marginTop:2,display:"flex",alignItems:"center",justifyContent:"center",transition:"all .15s"}}>
-                        {noKirche&&<span style={{color:"#080c14",fontSize:11,fontWeight:700}}>✓</span>}
-                      </div>
-                      <div>
-                        <div style={{fontSize:13,fontWeight:600,color:noKirche?C.grn:C.t2}}>Opt out of church tax</div>
-                        <div style={{fontSize:11,color:C.t3,marginTop:3,lineHeight:1.5}}>{noKirche?`Saves €${de_live.kirche}/mo once employed — declare "konfessionslos" at Anmeldung.`:`Saves €${de_live.kirche}/mo once you have a salary. One form at registration.`}</div>
-                      </div>
-                    </div>
+                    <div style={{fontSize:11,color:C.grn,marginTop:6}}>✓ Church tax: €0 — not enrolled at Anmeldung</div>
                   </>}
 
-                  {divider()}
+                  {dir!=="opp"&&divider()}
 
                   {/* ── NUMBERS ── */}
                   {dir!=="opp"&&<>
@@ -1867,17 +2048,7 @@ export default function App() {
                       `≈ ₹${(gross*rate/1e5).toFixed(1)}L/yr · net ~€${calcDE(gross,fam!=="single"?3:1,false).net.toLocaleString()}/mo`,
                       "gross"
                     )}
-                    {/* Church tax — lives here because it's a German payroll deduction */}
-                    <div onClick={()=>setNoKirche(p=>!p)} style={{display:"flex",alignItems:"flex-start",gap:12,cursor:"pointer",padding:"2px 0",marginBottom:20}}>
-                      <div style={{width:18,height:18,borderRadius:4,border:`2px solid ${noKirche?C.grn:"rgba(255,255,255,.2)"}`,background:noKirche?C.grn:"transparent",flexShrink:0,marginTop:2,display:"flex",alignItems:"center",justifyContent:"center",transition:"all .15s"}}>
-                        {noKirche&&<span style={{color:"#080c14",fontSize:11,fontWeight:700}}>✓</span>}
-                      </div>
-                      <div>
-                        <div style={{fontSize:13,fontWeight:600,color:noKirche?C.grn:C.t2}}>Opt out of church tax</div>
-                        <div style={{fontSize:11,color:C.t3,marginTop:3,lineHeight:1.5}}>{noKirche?`Saves €${de_live.kirche}/mo (€${(de_live.kirche*12).toLocaleString()}/yr) — declare "konfessionslos" at Anmeldung.`:`Saves €${de_live.kirche}/mo. Declare at registration — one form, 10 minutes.`}</div>
-                      </div>
-                    </div>
-                    {dir==="de2in"&&<div style={{marginBottom:16}}>
+                    {dir==="de2in"&&<div style={{marginBottom:12}}>
                       <div style={{fontSize:13,color:C.t2,marginBottom:8}}>India tax regime</div>
                       <div style={{display:"flex",gap:6,marginBottom:6}}>
                         {([["new","New FY26"],["old","Old regime"]] as ["new"|"old",string][]).map(([v,l])=>pill(l,inRegime===v,()=>setInRegime(v),"rgba(245,158,11,.8)"))}
@@ -1915,13 +2086,13 @@ export default function App() {
 
                   {advOpen&&(()=>{
                     const ls=dir==="in2de"?in2deLifestyle:oppLifestyle;
-                    const setLs=(k:string,v:string|boolean)=>dir==="in2de"?setIn2deLifestyle(p=>({...p,[k]:v})):updateOppLifestyle(k,v);
+                    const setLs=(k:string,v:string|boolean)=>dir==="in2de"?setIn2deLifestyle(p=>({...p,[k]:v})):updateOppLifestyle(k as keyof OppLifestyle,v);
                     const chipPill=(label:string,active:boolean,onClick:()=>void)=>(
                       <button onClick={onClick} style={{padding:"7px 10px",borderRadius:6,border:`1px solid ${active?"rgba(245,158,11,.7)":"rgba(255,255,255,.1)"}`,background:active?"rgba(245,158,11,.12)":"transparent",color:active?C.gold:C.t3,fontFamily:"Outfit,sans-serif",fontSize:12,fontWeight:active?600:400,cursor:"pointer",whiteSpace:"nowrap" as const,transition:"all .15s"}}>
                         {label}
                       </button>
                     );
-                    const moneyChip=(label:string,value:string,expandKey:string,children:React.ReactNode)=>{
+                    const moneyChip=(label:string,value:string,expandKey:string,children:ReactNode)=>{
                       const open=focusedInput===expandKey;
                       return (
                         <div style={{background:"rgba(255,255,255,.04)",borderRadius:8,padding:"10px 12px",border:`1px solid ${open?"rgba(245,158,11,.3)":"rgba(255,255,255,.07)"}`,transition:"border-color .15s"}}>
@@ -2009,7 +2180,7 @@ export default function App() {
                             <div style={{background:"rgba(255,255,255,.03)",borderRadius:8,padding:"10px 12px"}}>
                               <div style={{fontSize:10,color:C.t3,marginBottom:6,fontWeight:600}}>💪 Gym</div>
                               <div style={{display:"flex",flexDirection:"column" as const,gap:4}}>
-                                {([["none","No gym"],["basic","Basic (€40/mo)"],["premium","Premium (€75/mo)"]] as [string,string][]).map(([v,l])=>chipPill(l,ls.gym===v,()=>setLs("gym",v)))}
+                                {([["none","No gym"],["basic","Basic (€25/mo)"],["premium","Premium (€75/mo)"]] as [string,string][]).map(([v,l])=>chipPill(l,ls.gym===v,()=>setLs("gym",v)))}
                               </div>
                             </div>
                           </div>
@@ -2028,15 +2199,22 @@ export default function App() {
                     );
                   })()}
 
-                  {divider()}
 
-                  {/* CTA */}
-                  <button onClick={handleRun} disabled={loading}
-                    style={{width:"100%",padding:"16px",background:C.gold,color:"#080c14",border:"none",borderRadius:10,fontFamily:"Outfit,sans-serif",fontSize:16,fontWeight:700,cursor:loading?"not-allowed":"pointer",opacity:loading?.6:1,boxShadow:`0 4px 28px rgba(245,158,11,.3)`,letterSpacing:".3px"}}>
-                    {loading?loadMsg:dir==="opp"?"Calculate My Runway →":"Show My Full Package →"}
-                  </button>
-                  <p style={{textAlign:"center",fontSize:11,color:C.t3,marginTop:8}}>{dir==="opp"?"Instant · Nothing stored":"~5 sec · AI-powered · Nothing stored"}</p>
+                </div>
+              );
+            })()}
 
+            {/* ── NARRATIVE CALLOUT (below calculator controls) ── */}
+            {(dir==="in2de"||dir==="de2in")&&(()=>{
+              const _net=de_live.net,_gross=de_live.gross,_effN=Math.round(_net/_gross*100);
+              const _inNet=liveIn.net,_gapEur=_net-Math.round(_inNet/rate);
+              const _narrative=dir==="in2de"
+                ?`Your €${(_gross/1000).toFixed(0)}K offer in ${deCity} nets you €${_net.toLocaleString()}/mo — that's ${_effN}% of gross. You're ${_gapEur>=0?"€"+_gapEur.toLocaleString()+" ahead of":"€"+Math.abs(_gapEur).toLocaleString()+" short of"} parity with ${inCity}.`
+                :`Your €${(_gross/1000).toFixed(0)}K German gross nets €${_net.toLocaleString()}/mo. The India offer of ₹${(ctc/1e5).toFixed(0)}L nets ₹${_inNet.toLocaleString()}/mo (≈ €${Math.round(_inNet/rate).toLocaleString()}/mo). ${_gapEur>=0?"+":"−"}€${Math.abs(_gapEur).toLocaleString()}/mo difference.`;
+              return (
+                <div style={{marginTop:16,borderTop:"1px solid rgba(255,255,255,.06)",paddingTop:14,borderLeft:`3px solid ${dir==="in2de"?"rgba(37,99,235,.4)":"rgba(217,119,6,.4)"}`,paddingLeft:14}}>
+                  <p style={{fontSize:13,color:C.t2,lineHeight:1.65,fontWeight:500}}>{_narrative}</p>
+                  <p style={{fontSize:11,color:C.t3,marginTop:4}}>Updates live as you move the sliders →</p>
                 </div>
               );
             })()}
@@ -2044,248 +2222,12 @@ export default function App() {
         </div>
       </section>
 
-      {/* RESULTS */}
-      {results&&(
-        <div id="results" style={{padding:"60px 0 40px"}}>
-          <div style={{maxWidth:700,margin:"0 auto",padding:"0 20px"}}>
-            <style>{`
-              .tab-btn{padding:12px 8px;background:#0d1829;color:#4a6080;border:none;border-bottom:2px solid transparent;border-radius:8px 8px 0 0;font-family:'Outfit',sans-serif;font-size:13px;font-weight:600;cursor:pointer;transition:all 0.18s;flex:1;text-align:center}
-              .tab-btn.act{background:#111f35;color:#e8a020;border-bottom:2px solid #e8a020}
-              .tab-btn:hover:not(.act){color:#8a9bb8}
-              .change-fab{bottom:24px;left:24px}
-              @media(max-width:600px){
-                .tab-row{flex-wrap:wrap!important}
-                .tab-r1{width:50%!important;flex:none!important}
-                .tab-r2{width:50%!important;flex:none!important}
-                .pinned-hint{display:none!important}
-                .pinned-text{font-size:11px!important}
-                .tab-pad{padding:16px!important}
-                .change-fab{bottom:80px!important;left:16px!important}
-              }
-            `}</style>
-            {/* Tab bar */}
-            <div className="tab-row" style={{display:"flex",gap:0,marginBottom:0}}>
-              <button className={`tab-btn tab-r2${activeTab==='decision'?' act':''}`} onClick={()=>setActiveTab('decision')}>Decision</button>
-              <button className={`tab-btn tab-r2${activeTab==='money'?' act':''}`} onClick={()=>setActiveTab('money')}>Your Money</button>
-              <button className={`tab-btn tab-r2${activeTab==='breakdown'?' act':''}`} onClick={()=>setActiveTab('breakdown')}>Full Breakdown</button>
-              <button className={`tab-btn tab-r2${activeTab==='nextsteps'?' act':''}`} onClick={()=>setActiveTab('nextsteps')}>Next Steps</button>
-            </div>
-            {/* Pinned verdict strip — always visible */}
-            <div style={{height:48,width:"100%",display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 20px",background:pinnedBg}}>
-              <span className="pinned-text" style={{fontSize:13,fontWeight:600,color:pinnedColor}}>{pinnedText}</span>
-              <button onClick={()=>{navigator.clipboard.writeText(window.location.href);setUrlShared(true);setTimeout(()=>setUrlShared(false),2000);}} style={{background:"none",border:`1px solid ${C.gold}`,borderRadius:20,padding:"4px 10px",fontSize:11,fontWeight:600,color:C.gold,cursor:"pointer",flexShrink:0}}>{urlShared?"✓ Copied!":"🔗 Share results"}</button>
-            </div>
-            {/* Confidence sentence */}
-            {results&&confidenceText&&(
-              <div style={{width:"100%",background:confidenceBg,borderBottom:`1px solid ${confidenceBorderBottom}`,padding:"14px 24px"}}>
-                <span style={{fontFamily:"'Cormorant Garamond',serif",fontSize:26,fontWeight:600,color:confidenceColor}}>{confidenceText}</span>
-              </div>
-            )}
-            {/* Tab content */}
-            {activeTab==='decision'&&(
-              <div style={{background:C.bg2,border:"1px solid rgba(255,255,255,0.05)",borderRadius:"0 0 20px 20px",minHeight:400,overflow:"hidden"}}>
-                {results.cardD}
-              </div>
-            )}
-            {activeTab==='money'&&(
-              <div style={{background:C.bg2,border:"1px solid rgba(255,255,255,0.05)",borderRadius:"0 0 20px 20px",minHeight:400,overflow:"hidden"}}>
-                {results.cardA}
-              </div>
-            )}
-            {activeTab==='breakdown'&&(
-              <div className="tab-pad" style={{background:C.bg2,border:"1px solid rgba(255,255,255,0.05)",borderRadius:"0 0 20px 20px",padding:28,minHeight:400}}>
-                {results.cardBDed}
-                <div style={{borderTop:"1px solid rgba(255,255,255,0.08)",margin:"28px 0"}}/>
-                {results.cardBLiv}
-              </div>
-            )}
-            {activeTab==='nextsteps'&&(
-              <div style={{background:C.bg2,border:"1px solid rgba(255,255,255,0.05)",borderRadius:"0 0 20px 20px",minHeight:400,overflow:"hidden"}}>
-                {results.ai&&<CardC ai={results.ai} gross={results.gross} dir={dir}/>}
-                {oneThingText&&(
-                  <div style={{padding:"0 28px 28px"}}>
-                    <div style={{fontSize:11,fontWeight:600,letterSpacing:"1.8px",textTransform:"uppercase",color:C.t3,marginBottom:12}}>One Thing To Do Today</div>
-                    <div style={{background:"rgba(232,160,32,0.08)",border:"1px solid rgba(232,160,32,0.25)",borderRadius:14,padding:18}}>
-                      <div style={{fontSize:14,color:C.t1,lineHeight:1.6}}>{oneThingText}</div>
-                      <div style={{fontSize:11,color:C.t3,marginTop:10}}>Do this before you close this tab.</div>
-                    </div>
-                  </div>
-                )}
-                <BookingCard openCal={()=>setCalOpen(true)}/>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* OPP RESULTS */}
-      {oppResults&&dir==='opp'&&(
-        <div id="results" style={{padding:"60px 0 40px"}}>
-          <div style={{maxWidth:700,margin:"0 auto",padding:"0 20px"}}>
-            {/* Tab bar */}
-            <div className="tab-row" style={{display:"flex",gap:0,marginBottom:0}}>
-              <button className={`tab-btn tab-r2${activeTab==='decision'?' act':''}`} onClick={()=>setActiveTab('decision')}>Decision</button>
-              <button className={`tab-btn tab-r2${activeTab==='breakdown'?' act':''}`} onClick={()=>setActiveTab('breakdown')}>Full Breakdown</button>
-              <button className={`tab-btn tab-r2${activeTab==='nextsteps'?' act':''}`} onClick={()=>setActiveTab('nextsteps')}>Next Steps</button>
-            </div>
-            {/* Pinned strip */}
-            <div style={{height:48,width:"100%",display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 20px",background:_oppPinnedBg}}>
-              <span className="pinned-text" style={{fontSize:13,fontWeight:600,color:_oppPinnedColor}}>{_oppPinnedText}</span>
-              <button onClick={()=>{navigator.clipboard.writeText(window.location.href);setUrlShared(true);setTimeout(()=>setUrlShared(false),2000);}} style={{background:"none",border:`1px solid ${C.gold}`,borderRadius:20,padding:"4px 10px",fontSize:11,fontWeight:600,color:C.gold,cursor:"pointer",flexShrink:0}}>{urlShared?"✓ Copied!":"🔗 Share"}</button>
-            </div>
-            {/* Confidence sentence */}
-            {_oppConfidenceText&&(
-              <div style={{width:"100%",background:_oppConfidenceBg,borderBottom:`1px solid ${_oppConfidenceBorder}`,padding:"14px 24px"}}>
-                <span style={{fontFamily:"'Cormorant Garamond',serif",fontSize:26,fontWeight:600,color:_oppPinnedColor}}>{_oppConfidenceText}</span>
-              </div>
-            )}
-            {/* Decision tab */}
-            {activeTab==='decision'&&(
-              <div style={{background:C.bg2,border:"1px solid rgba(255,255,255,0.05)",borderRadius:"0 0 20px 20px",padding:28,minHeight:400}}>
-                {/* Twin hero cards */}
-                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16,marginBottom:24}}>
-                  <div style={{background:_oppRunwayGreat?C.grnD:_oppRunwayGood?C.goldD:C.redD,border:`1px solid ${_oppRunwayGreat?C.grnL:_oppRunwayGood?C.goldL:'rgba(255,91,91,.25)'}`,borderRadius:14,padding:"22px 16px",textAlign:"center"}}>
-                    <div style={{fontSize:10,fontWeight:600,letterSpacing:"1.5px",textTransform:"uppercase",color:C.t3,marginBottom:8}}>Runway</div>
-                    <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:28,fontWeight:700,color:_oppRunwayGreat?C.grn:_oppRunwayGood?C.gold:C.red,lineHeight:1.1}}>{_oppRunwayText}</div>
-                    <div style={{fontSize:11,color:C.t3,marginTop:6}}>of savings at this lifestyle</div>
-                  </div>
-                  <div style={{background:C.goldD,border:`1px solid ${C.goldL}`,borderRadius:14,padding:"22px 16px",textAlign:"center"}}>
-                    <div style={{fontSize:10,fontWeight:600,letterSpacing:"1.5px",textTransform:"uppercase",color:C.t3,marginBottom:8}}>Target Gross Offer</div>
-                    <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:28,fontWeight:700,color:C.gold,lineHeight:1.1}}>€{_oppTargetGrossK}K</div>
-                    <div style={{fontSize:11,color:C.t3,marginTop:6}}>per year to break even in {deCity}</div>
-                  </div>
-                </div>
-                {/* Legal min warning */}
-                {_oppBelowLegal&&(
-                  <div style={{background:C.redD,border:"1px solid rgba(255,91,91,.25)",borderRadius:10,padding:"14px 16px",marginBottom:20}}>
-                    <div style={{fontSize:13,color:C.red,lineHeight:1.6,fontWeight:500}}>⚠ Your savings (€{savings.toLocaleString()}) may be below the Chancenkarte minimum requirement of {_oppLegalMinStr}. Check the official requirements before applying.</div>
-                  </div>
-                )}
-                {/* City Number label */}
-                <div style={{marginBottom:20}}>
-                  <div style={{fontSize:11,fontWeight:600,letterSpacing:"1.8px",textTransform:"uppercase",color:C.t3,marginBottom:4}}>Your {deCity} Number</div>
-                  <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:22,fontWeight:700,color:C.t1}}>€{_oppTargetGrossK}K gross / year</div>
-                  <div style={{fontSize:12,color:C.t3}}>The minimum offer to accept in {deCity} at this lifestyle</div>
-                </div>
-                {/* 12-month cash flow chart */}
-                <div style={{fontSize:11,fontWeight:600,letterSpacing:"1.8px",textTransform:"uppercase",color:C.t3,marginBottom:8}}>12-Month Cash Flow</div>
-                <div style={{display:"flex",gap:3,alignItems:"flex-end",height:110,background:C.bg1,borderRadius:10,padding:"12px 12px 8px"}}>
-                  {_oppChartPositions.map((m,i)=>{
-                    const pct=Math.max(0.04,(m.cash-_oppChartMin)/_oppChartRange);
-                    const barH=Math.round(pct*86);
-                    const barColor=m.cash>0?(m.hasSalary?C.grn:C.gold):C.red;
-                    return (
-                      <div key={i} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:2}}>
-                        <div style={{width:"100%",height:`${barH}px`,background:barColor,borderRadius:"3px 3px 0 0",minHeight:3}}/>
-                        <div style={{fontSize:9,color:C.t3}}>{m.month}</div>
-                      </div>
-                    );
-                  })}
-                </div>
-                <div style={{display:"flex",gap:16,marginTop:10,fontSize:11,color:C.t3}}>
-                  <span><span style={{color:C.gold}}>█</span> Savings only</span>
-                  <span><span style={{color:C.grn}}>█</span> After job offer</span>
-                  <span><span style={{color:C.red}}>█</span> Deficit</span>
-                </div>
-                <div style={{fontSize:11,color:C.t3,marginTop:6}}>Job search assumed to succeed by month {_oppR?.safeMonths??0}. Numbers update if you change lifestyle in Full Breakdown.</div>
-              </div>
-            )}
-            {/* Full Breakdown tab */}
-            {activeTab==='breakdown'&&(
-              <div className="tab-pad" style={{background:C.bg2,border:"1px solid rgba(255,255,255,0.05)",borderRadius:"0 0 20px 20px",padding:28,minHeight:400}}>
-                <div style={{fontSize:11,fontWeight:600,letterSpacing:"1.8px",textTransform:"uppercase",color:C.t3,marginBottom:16}}>Monthly Cost in {deCity}</div>
-                {([["Rent",_oppRentMid],["Groceries",_oppGrocMid],["Eating out",_oppEatingOut],["Transport",_oppTrans],["Gym",_oppGym],["Utilities",_oppUtilMid],["Health insurance",_oppHealthFull],["Phone",_oppPhone]] as [string,number][]).map(([lbl,val])=>val>0?(
-                  <div key={lbl} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"10px 0",borderBottom:`1px solid ${C.b0}`}}>
-                    <span style={{fontSize:13,color:C.t2}}>{lbl}</span>
-                    <span style={{fontSize:14,fontWeight:600,color:C.t1}}>€{val.toLocaleString()}/mo</span>
-                  </div>
-                ):null)}
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"14px 0",marginTop:4}}>
-                  <span style={{fontSize:14,fontWeight:700,color:C.t1}}>Total Monthly Burn</span>
-                  <span style={{fontSize:16,fontWeight:700,color:C.red}}>€{_oppMonthlyBurn.toLocaleString()}/mo</span>
-                </div>
-                {/* Lifestyle customiser for instant recalc */}
-                <div style={{marginTop:24,background:C.bgi,border:`1px solid ${C.b1}`,borderRadius:10,padding:16}}>
-                  <div style={{fontSize:11,fontWeight:600,letterSpacing:"1.8px",textTransform:"uppercase",color:C.t3,marginBottom:14}}>Adjust Lifestyle — updates instantly</div>
-                  <div style={{marginBottom:12}}>
-                    <div style={{fontSize:11,color:C.t3,marginBottom:6}}>Apartment</div>
-                    <div style={{display:"flex",gap:6}}>
-                      {([["wg","Shared (WG)"],["1br","1 Bedroom"],["2br","2 Bedroom"]] as [string,string][]).map(([v,l])=>(
-                        <button key={v} onClick={()=>updateOppLifestyle("apartment",v)} style={{flex:1,padding:"8px 4px",textAlign:"center",background:oppLifestyle.apartment===v?C.gold:C.bg1,border:`1px solid ${oppLifestyle.apartment===v?C.gold:C.b1}`,borderRadius:6,color:oppLifestyle.apartment===v?"#070f1c":C.t2,fontFamily:"Outfit,sans-serif",fontSize:11,fontWeight:oppLifestyle.apartment===v?700:500,cursor:"pointer"}}>{l}</button>
-                      ))}
-                    </div>
-                  </div>
-                  <div style={{marginBottom:12}}>
-                    <div style={{fontSize:11,color:C.t3,marginBottom:6}}>Eating</div>
-                    <div style={{display:"flex",gap:6}}>
-                      {([["cook","Cook at home"],["mix","Mix"],["eat-out","Eat out often"]] as [string,string][]).map(([v,l])=>(
-                        <button key={v} onClick={()=>updateOppLifestyle("cooking",v)} style={{flex:1,padding:"8px 4px",textAlign:"center",background:oppLifestyle.cooking===v?C.gold:C.bg1,border:`1px solid ${oppLifestyle.cooking===v?C.gold:C.b1}`,borderRadius:6,color:oppLifestyle.cooking===v?"#070f1c":C.t2,fontFamily:"Outfit,sans-serif",fontSize:11,fontWeight:oppLifestyle.cooking===v?700:500,cursor:"pointer"}}>{l}</button>
-                      ))}
-                    </div>
-                  </div>
-                  <div style={{display:"flex",gap:10}}>
-                    <div style={{flex:1}}>
-                      <div style={{fontSize:11,color:C.t3,marginBottom:6}}>Car</div>
-                      <div style={{display:"flex",gap:6}}>
-                        {([["false","No car"],["true","Own car"]] as [string,string][]).map(([v,l])=>(
-                          <button key={v} onClick={()=>updateOppLifestyle("car",v==="true")} style={{flex:1,padding:"8px 4px",textAlign:"center",background:(oppLifestyle.car?"true":"false")===v?C.gold:C.bg1,border:`1px solid ${(oppLifestyle.car?"true":"false")===v?C.gold:C.b1}`,borderRadius:6,color:(oppLifestyle.car?"true":"false")===v?"#070f1c":C.t2,fontFamily:"Outfit,sans-serif",fontSize:11,fontWeight:(oppLifestyle.car?"true":"false")===v?700:500,cursor:"pointer"}}>{l}</button>
-                        ))}
-                      </div>
-                    </div>
-                    <div style={{flex:1}}>
-                      <div style={{fontSize:11,color:C.t3,marginBottom:6}}>Gym</div>
-                      <div style={{display:"flex",gap:6}}>
-                        {([["none","None"],["basic","Basic"],["premium","Premium"]] as [string,string][]).map(([v,l])=>(
-                          <button key={v} onClick={()=>updateOppLifestyle("gym",v)} style={{flex:1,padding:"8px 4px",textAlign:"center",background:oppLifestyle.gym===v?C.gold:C.bg1,border:`1px solid ${oppLifestyle.gym===v?C.gold:C.b1}`,borderRadius:6,color:oppLifestyle.gym===v?"#070f1c":C.t2,fontFamily:"Outfit,sans-serif",fontSize:11,fontWeight:oppLifestyle.gym===v?700:500,cursor:"pointer"}}>{l}</button>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-            {/* Next Steps tab */}
-            {activeTab==='nextsteps'&&(
-              <div style={{background:C.bg2,border:"1px solid rgba(255,255,255,0.05)",borderRadius:"0 0 20px 20px",minHeight:400,overflow:"hidden"}}>
-                <div style={{padding:28}}>
-                  <div style={{fontSize:11,fontWeight:600,letterSpacing:"1.8px",textTransform:"uppercase",color:C.t3,marginBottom:16}}>Before You Land</div>
-                  {[
-                    {k:'blockacc',text:'Open a German blocked account (Sperrkonto) — required for the Chancenkarte visa process'},
-                    {k:'health',text:'Get international health insurance for the job search period (minimum 3 months coverage)'},
-                    {k:'cvde',text:'Have your CV translated and formatted to German standard (EuropeCV or German DIN format)'},
-                    {k:'lang',text:'Complete at least A1 German or enroll in a recognised language course before departure'},
-                    {k:'network',text:'Connect with 5 Indians already working in Germany in your field on LinkedIn before you land'},
-                  ].map(({k,text})=>(
-                    <div key={k} onClick={()=>setCheckedOpp(p=>({...p,[k]:!p[k]}))} style={{display:"flex",alignItems:"flex-start",gap:12,padding:"12px 0",borderBottom:`1px solid ${C.b0}`,cursor:"pointer"}}>
-                      <div style={{width:18,height:18,borderRadius:4,border:`2px solid ${checkedOpp[k]?C.grn:C.t3}`,background:checkedOpp[k]?C.grn:"none",flexShrink:0,marginTop:1,display:"flex",alignItems:"center",justifyContent:"center",transition:"all .2s"}}>
-                        {checkedOpp[k]&&<span style={{color:"#07111f",fontSize:11,fontWeight:700,lineHeight:1}}>✓</span>}
-                      </div>
-                      <div style={{fontSize:13,color:checkedOpp[k]?C.t3:C.t1,transition:"color .2s",textDecoration:checkedOpp[k]?"line-through":"none",lineHeight:1.5}}>{text}</div>
-                    </div>
-                  ))}
-                  {_oppOneThingText&&(
-                    <div style={{marginTop:24}}>
-                      <div style={{fontSize:11,fontWeight:600,letterSpacing:"1.8px",textTransform:"uppercase",color:C.t3,marginBottom:12}}>One Thing To Do Today</div>
-                      <div style={{background:"rgba(232,160,32,0.08)",border:"1px solid rgba(232,160,32,0.25)",borderRadius:14,padding:18}}>
-                        <div style={{fontSize:14,color:C.t1,lineHeight:1.6}}>{_oppOneThingText}</div>
-                        <div style={{fontSize:11,color:C.t3,marginTop:10}}>Do this before you close this tab.</div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-                <BookingCard openCal={()=>setCalOpen(true)}/>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
       {/* FOOTER */}
       <footer style={{borderTop:`1px solid ${C.b0}`,padding:"20px 24px",textAlign:"center",background:C.bg0,marginTop:40}}>
         <div style={{fontSize:12,color:C.t3,display:"flex",alignItems:"center",justifyContent:"center",gap:14,flexWrap:"wrap"}}>
           <span>© 2026 TruePackage</span>
           <span style={{color:C.b1}}>·</span>
-          <span>Built by Supradeep · India → Germany</span>
+          <span>Built by a fellow expat · India → Germany</span>
           <span style={{color:C.b1}}>·</span>
           <button onClick={()=>setSourcesOpen(true)} style={{background:"none",border:"none",cursor:"pointer",fontFamily:"Outfit,sans-serif",fontSize:12,color:C.t3,textDecoration:"underline",padding:0,textUnderlineOffset:3}}>Sources</button>
           <span style={{color:C.b1}}>·</span>
@@ -2293,19 +2235,137 @@ export default function App() {
         </div>
       </footer>
 
-      {/* LOADER */}
-      {loading&&(
-        <div style={{position:"fixed",inset:0,zIndex:300,background:"rgba(6,16,28,.94)",backdropFilter:"blur(10px)",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:18}}>
-          <div style={{width:42,height:42,borderRadius:"50%",border:`3px solid ${C.b1}`,borderTopColor:C.gold,animation:"spin .8s linear infinite"}}/>
-          <div style={{fontSize:14,color:C.t2}}>{loadMsg}</div>
-        </div>
-      )}
+      {/* ── MODAL OVERLAY ── */}
+      {openModal&&(()=>{
+        const de=_liveDe,india=_liveIn;
+        const dc=CITIES.de[deCity]||CITIES.de.Munich,ic=CITIES.in[inCity]||CITIES.in.Bangalore;
+        const isM=_liveIsM,tcv=_liveTc;
 
-      {/* CHANGE INPUTS FAB */}
-      {(results||(dir==='opp'&&oppResults))&&<button className="change-fab" onClick={()=>{setResults(null);setOppResults(null);setWhatIfGross(null);window.scrollTo({top:0,behavior:'smooth'});}} style={{position:"fixed",bottom:24,left:24,zIndex:999,background:C.gold,color:"#070f1c",border:"none",borderRadius:24,padding:"10px 18px",fontFamily:"Outfit,sans-serif",fontSize:13,fontWeight:600,cursor:"pointer",boxShadow:"0 4px 16px rgba(0,0,0,.4)"}}>↑ Change inputs</button>}
+        // Before You Sign checklist state (local to modal render — resets on close intentionally)
+        // We embed the checklist data inline and use a module-level ref trick to persist state across reopens
+        const blueCardStatus=gross>=45300?'eligible':gross>=41042?'possible':'ineligible';
+        const blueCardBg=blueCardStatus==='eligible'?'rgba(0,201,139,0.08)':'rgba(232,160,32,0.12)';
+        const blueCardBorder=blueCardStatus==='eligible'?'rgba(0,201,139,0.25)':'rgba(232,160,32,0.28)';
+        const blueCardColor=blueCardStatus==='eligible'?'#00c98b':'#e8a020';
+        const blueCardText=blueCardStatus==='eligible'
+          ?'✓ Blue Card eligible — your offer clears the €45,300 threshold. Faster path to permanent residency than a standard work permit.'
+          :blueCardStatus==='possible'
+          ?'⚡ Possibly Blue Card eligible — your offer qualifies if your role is in IT, engineering, or medicine. Confirm with your employer.'
+          :'⚠ Below Blue Card threshold — you will need a standard work permit. Ask your employer about sponsored visa options.';
+
+        return (
+          <div onClick={(e)=>{if(e.target===e.currentTarget)setOpenModal(null);}}
+            style={{position:"fixed",inset:0,zIndex:500,background:"rgba(0,0,0,0.6)",display:"flex",alignItems:"center",justifyContent:"center",padding:"20px"}}>
+            <div style={{background:C.bg1,borderRadius:20,maxWidth:720,width:"100%",maxHeight:"90vh",overflowY:"auto" as const,position:"relative" as const,boxShadow:"0 20px 60px rgba(0,0,0,0.5)"}}>
+              <div style={{position:"sticky",top:0,background:C.bg1,borderBottom:`1px solid ${C.b0}`,padding:"14px 20px",display:"flex",justifyContent:"space-between",alignItems:"center",zIndex:1,borderRadius:"20px 20px 0 0"}}>
+                <span style={{fontSize:13,fontWeight:700,color:C.t2,letterSpacing:".3px"}}>
+                  {openModal==='money'?'Your Money':openModal==='breakdown'?'Full Breakdown':openModal==='nextsteps'?'Before You Sign':openModal==='runway'?'Runway Details':'Before You Land'}
+                </span>
+                <button onClick={()=>setOpenModal(null)}
+                  style={{background:"none",border:`1px solid ${C.b1}`,borderRadius:8,padding:"5px 12px",color:C.t3,cursor:"pointer",fontSize:13,fontFamily:"Outfit,sans-serif"}}>
+                  ✕ Close
+                </button>
+              </div>
+              <div style={{padding:"24px 24px 32px"}}>
+                {openModal==='money'&&(dir==='in2de'
+                  ? <CardA_in de={de} india={india} remEur={_liveRemEur} dc={dc} ic={ic} ctc={ctc} gross={gross} isM={isM} sk3={_liveSk3} noKirche={noKirche}/>
+                  : <CardA_de de={de} india={india} match={_liveMatch!} ctc={ctc} rate={rate} inCity={inCity}/>
+                )}
+                {openModal==='breakdown'&&(
+                  dir==='in2de'
+                    ? <><CardB_in de={de} ic={ic} ctc={ctc} sk3={_liveSk3} rate={rate} noKirche={noKirche} remEur={_liveRemEur} fam={fam} dc={dc} deCity={deCity} view="deductions"/>
+                        <div style={{borderTop:`1px solid ${C.b0}`,margin:"24px 0"}}/>
+                        <CardB_in de={de} ic={ic} ctc={ctc} sk3={_liveSk3} rate={rate} noKirche={noKirche} remEur={_liveRemEur} fam={fam} dc={dc} deCity={deCity} view="living"/></>
+                    : <><CardB_de de={de} india={india} match={_liveMatch!} ic={ic} ctc={ctc} fam={fam} inCity={inCity} view="deductions"/>
+                        <div style={{borderTop:`1px solid ${C.b0}`,margin:"24px 0"}}/>
+                        <CardB_de de={de} india={india} match={_liveMatch!} ic={ic} ctc={ctc} fam={fam} inCity={inCity} view="living"/></>
+                )}
+                {openModal==='nextsteps'&&(
+                  <div>
+                    {dir==='in2de'&&(
+                      <div style={{background:blueCardBg,border:`1px solid ${blueCardBorder}`,borderRadius:10,padding:"14px 16px",marginBottom:22}}>
+                        <div style={{fontSize:13,color:blueCardColor,lineHeight:1.6,fontWeight:500}}>{blueCardText}</div>
+                      </div>
+                    )}
+                    {dir==='de2in'&&(
+                      <div style={{fontSize:13,color:C.t3,lineHeight:1.5,marginBottom:16}}>Things to sort before your Germany chapter closes.</div>
+                    )}
+                    {dir==='in2de'&&[
+                      {key:'q1',q:"Do you have €4,000–6,000 saved for the apartment deposit before your first salary lands?",c:"Your first salary arrives 4–6 weeks after joining. Deposit is due before you get keys. Arrange a transfer from India before you fly."},
+                      {key:'q2',q:"Have you budgeted for 6 months with no credit history in Germany?",c:"No SCHUFA means landlords may reject you, no phone contract, no credit card. Expat-friendly landlords and WG-Gesucht are your first 3 months."},
+                      {key:'q3',q:"Do you know you need a registered address within 14 days of arrival?",c:"Anmeldung is mandatory within 14 days. Without it you cannot open a bank account or register for tax. Book a temporary flat or hotel with a landlord willing to sign the Wohnungsgeberbestätigung form."},
+                      {key:'q4',q:"Do you know you have a one-time window to choose GKV vs PKV health insurance?",c:"You have 3 months from start date to opt into private health insurance PKV. After that you are locked into statutory GKV until your salary drops below €69,300. At your salary it is worth evaluating — PKV can be cheaper and better."},
+                    ].map((item,i,arr)=>(
+                      <div key={item.key} style={{padding:"14px 0",borderBottom:i<arr.length-1?`1px solid ${C.b0}`:"none"}}>
+                        <div style={{fontSize:14,fontWeight:600,color:C.t1,lineHeight:1.5,marginBottom:6}}>{item.q}</div>
+                        <div style={{fontSize:13,color:C.gold,lineHeight:1.5}}>{item.c}</div>
+                      </div>
+                    ))}
+                    {dir==='de2in'&&[
+                      {key:'q1',q:"Have you arranged health insurance before your Germany cover ends?",c:"German statutory health ends on your last day. Indian employer group cover may have a waiting period. Arrange a bridge policy or confirm day-one cover with your new employer."},
+                      {key:'q2',q:"Do you know how Indian PF and gratuity work after a Germany gap?",c:"If you left an Indian employer to move to Germany your PF may be partially withdrawn or dormant. New employer restarts the clock on gratuity — 5 years needed to vest."},
+                      {key:'q3',q:"Are you aware of your tax residency status for the transition year?",c:"If you spend 182 or more days in India in the financial year of return you become a tax resident. Your Germany income for that period may be taxable in India depending on DTAA provisions."},
+                      {key:'q4',q:"Have you confirmed when your India variable pay kicks in?",c:"Most Indian companies pay the first bonus after 12 months. Your CTC includes 20 to 30 percent variable — budget conservatively for year one."},
+                    ].map((item,i,arr)=>(
+                      <div key={item.key} style={{padding:"14px 0",borderBottom:i<arr.length-1?`1px solid ${C.b0}`:"none"}}>
+                        <div style={{fontSize:14,fontWeight:600,color:C.t1,lineHeight:1.5,marginBottom:6}}>{item.q}</div>
+                        <div style={{fontSize:13,color:C.gold,lineHeight:1.5}}>{item.c}</div>
+                      </div>
+                    ))}
+                    <div style={{marginTop:24}}>
+                      <BookingCard openCal={()=>{setOpenModal(null);setCalOpen(true);}}/>
+                    </div>
+                  </div>
+                )}
+                {openModal==='runway'&&_oppR&&(
+                  <div>
+                    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16,marginBottom:24}}>
+                      <div style={{background:_oppRunwayGreat?C.grnD:_oppRunwayGood?C.goldD:C.redD,border:`1px solid ${_oppRunwayGreat?C.grnL:_oppRunwayGood?C.goldL:'rgba(255,91,91,.25)'}`,borderRadius:14,padding:"22px 16px",textAlign:"center" as const}}>
+                        <div style={{fontSize:10,fontWeight:600,letterSpacing:"1.5px",textTransform:"uppercase" as const,color:C.t3,marginBottom:8}}>Runway</div>
+                        <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:32,fontWeight:700,color:_oppRunwayGreat?C.grn:_oppRunwayGood?C.gold:C.red,lineHeight:1.1}}>{_oppRunwayText}</div>
+                        <div style={{fontSize:11,color:C.t3,marginTop:6}}>of savings at this lifestyle</div>
+                      </div>
+                      <div style={{background:C.goldD,border:`1px solid ${C.goldL}`,borderRadius:14,padding:"22px 16px",textAlign:"center" as const}}>
+                        <div style={{fontSize:10,fontWeight:600,letterSpacing:"1.5px",textTransform:"uppercase" as const,color:C.t3,marginBottom:8}}>Target Gross</div>
+                        <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:32,fontWeight:700,color:C.gold,lineHeight:1.1}}>€{_oppTargetGrossK}K</div>
+                        <div style={{fontSize:11,color:C.t3,marginTop:6}}>per year to break even</div>
+                      </div>
+                    </div>
+                    {_oppOneThingText&&(
+                      <div style={{background:"rgba(232,160,32,0.08)",border:"1px solid rgba(232,160,32,0.25)",borderRadius:14,padding:18}}>
+                        <div style={{fontSize:14,color:C.t1,lineHeight:1.6}}>{_oppOneThingText}</div>
+                      </div>
+                    )}
+                  </div>
+                )}
+                {openModal==='prelanding'&&(
+                  <div>
+                    <div style={{marginBottom:20}}>
+                      <div style={{fontSize:14,color:C.t2,lineHeight:1.6,marginBottom:16}}>Things to arrange before you fly to Germany.</div>
+                      {[
+                        {key:'blockacc',q:"Have you opened a German bank account (Bunq, N26, or Deutsche Bank international)?",c:"Most landlords require a German IBAN for the deposit. Open Bunq or N26 before you arrive — both accept non-residents."},
+                        {key:'health',q:"Do you have travel + health insurance that covers the first 90 days?",c:"German public health insurance only starts with your employment. Get a short-term expat policy for the gap — costs ~€60–100/month."},
+                        {key:'cvde',q:"Is your CV in German format with a Lichtbild photo?",c:"German employers expect a photo and a specific layout. Use a tool like Europass or get a German template — it signals cultural fit."},
+                        {key:'lang',q:"Can you handle basic German bureaucracy (Anmeldung forms, Deutsche Bahn, landlords)?",c:"A2 level is enough to register and open a bank account. The Duolingo German course takes 3 months to reach A2."},
+                        {key:'network',q:"Do you have one contact in your target city you can call if things go wrong?",c:"Find a local WhatsApp group or Facebook group for Indian expats in your city. They answer the questions no one else will."},
+                      ].map((item,i,arr)=>(
+                        <div key={item.key} style={{padding:"14px 0",borderBottom:i<arr.length-1?`1px solid ${C.b0}`:"none"}}>
+                          <div style={{fontSize:14,fontWeight:600,color:C.t1,lineHeight:1.5,marginBottom:6}}>{item.q}</div>
+                          <div style={{fontSize:13,color:C.gold,lineHeight:1.5}}>{item.c}</div>
+                        </div>
+                      ))}
+                    </div>
+                    <BookingCard openCal={()=>{setOpenModal(null);setCalOpen(true);}}/>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* ASK SUPRADEEP FAB */}
-      <button onClick={()=>{setSubmitted(false);setEmailError(false);setIntakeOpen(true);}} style={{position:"fixed",bottom:24,right:24,zIndex:200,background:C.gold,color:C.bg0,border:"none",borderRadius:24,padding:"10px 18px",fontFamily:"Outfit,sans-serif",fontSize:13,fontWeight:600,cursor:"pointer",boxShadow:"0 4px 16px rgba(0,0,0,.4)"}}>✉ Ask Supradeep</button>
+      <button onClick={()=>{setSubmitted(false);setEmailError(false);setIntakeOpen(true);}} style={{position:"fixed",bottom:24,right:24,zIndex:200,background:C.gold,color:C.bg0,border:"none",borderRadius:24,padding:"10px 18px",fontFamily:"Outfit,sans-serif",fontSize:13,fontWeight:600,cursor:"pointer",boxShadow:"0 4px 16px rgba(0,0,0,.4)"}}>✉ Got a question?</button>
 
       {/* INTAKE MODAL */}
       {intakeOpen&&(

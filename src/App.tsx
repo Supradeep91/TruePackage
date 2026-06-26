@@ -2234,7 +2234,7 @@ export default function App() {
           <span style={{color:C.b1}}>·</span>
           <button onClick={()=>setSourcesOpen(true)} style={{background:"none",border:"none",cursor:"pointer",fontFamily:"Outfit,sans-serif",fontSize:12,color:C.t3,textDecoration:"underline",padding:0,textUnderlineOffset:3}}>Sources</button>
           <span style={{color:C.b1}}>·</span>
-          <span>Data: March 2026</span>
+          <span>Data: June 2026</span>
         </div>
       </footer>
 

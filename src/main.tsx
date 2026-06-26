@@ -1,10 +1,8 @@
 import {StrictMode,Component,type ReactNode} from 'react';
 import {createRoot} from 'react-dom/client';
-import {inject} from '@vercel/analytics';
+import {Analytics} from '@vercel/analytics/react';
 import App from './App.tsx';
 import './index.css';
-
-inject();
 
 class EB extends Component<{children:ReactNode},{err:string|null}> {
   state={err:null};
@@ -18,5 +16,6 @@ class EB extends Component<{children:ReactNode},{err:string|null}> {
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <EB><App /></EB>
+    <Analytics />
   </StrictMode>,
 );

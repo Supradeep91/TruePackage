@@ -1512,9 +1512,27 @@ export default function App() {
       {/* NAV — light zone */}
       <nav style={{position:"fixed",top:0,left:0,right:0,zIndex:100,height:52,padding:"0 28px",display:"flex",alignItems:"center",justifyContent:"space-between",background:C.lbg,borderBottom:`1px solid ${C.lborder}`}}>
         <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:22,fontWeight:700,color:"#92400e",letterSpacing:".5px"}}>TruePackage</div>
-        <div style={{display:"flex",alignItems:"center",gap:6,fontSize:12,color:C.ltxt3}}>
-          <div style={{width:6,height:6,borderRadius:"50%",background:"#059669",boxShadow:"0 0 8px rgba(5,150,105,.5)",animation:"pulse 2.5s ease-in-out infinite"}}/>
-          <span>{rateDate?`₹${rate.toFixed(2)} / € · ${rateDate}`:"Fetching live rate…"}</span>
+        <div style={{display:"flex",alignItems:"center",gap:4}}>
+          {([
+            {d:"in2de" as Dir, label:"India → Germany"},
+            {d:"de2in" as Dir, label:"Germany → India"},
+            {d:"opp"   as Dir, label:"Runway"},
+            {d:"student" as Dir, label:"Student"},
+          ]).map(item=>(
+            <button key={item.d} onClick={()=>{
+              setDir(item.d);
+              setWhatIfGross(null);
+              setTimeout(()=>document.getElementById("calculator")?.scrollIntoView({behavior:"smooth",block:"start"}),50);
+            }} style={{
+              padding:"5px 13px",borderRadius:20,fontFamily:"Outfit,sans-serif",fontSize:12,fontWeight:600,cursor:"pointer",
+              border:`1px solid ${dir===item.d?C.ltxt:"rgba(0,0,0,.12)"}`,
+              background:dir===item.d?C.ltxt:"transparent",
+              color:dir===item.d?C.lbg:C.ltxt2,
+              transition:"all .15s",
+            }}>
+              {item.label}
+            </button>
+          ))}
         </div>
       </nav>
 

@@ -1248,15 +1248,15 @@ function CardC({ai,gross,dir}:{ai:AI;gross:number;dir:Dir}) {
 }
 
 // ─── BOOKING CARD ─────────────────────────────────────────────────────────────
-function BookingCard({openCal}:{openCal:()=>void}) {
+function BookingCard({openIntake}:{openIntake:()=>void}) {
   return (
     <div style={{...S.card,background:`linear-gradient(135deg,${C.bg2} 0%,rgba(232,160,32,.06) 100%)`,border:`1px solid ${C.goldL}`}}>
       <div style={{display:"flex",alignItems:"center",gap:20}}>
-        <div style={{fontSize:44,flexShrink:0}}>👋</div>
+        <div style={{fontSize:44,flexShrink:0}}>✉️</div>
         <div style={{flex:1}}>
-          <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:22,fontWeight:700,color:C.t1,marginBottom:6}}>Talk to Supradeep directly</div>
-          <div style={{fontSize:13,color:C.t2,lineHeight:1.6,marginBottom:16}}>He made this move. Built this tool from that experience. 30 minutes, free, no pitch.</div>
-          <button onClick={openCal} style={{background:C.gold,color:"#070f1c",border:"none",borderRadius:10,padding:"12px 24px",fontFamily:"Outfit,sans-serif",fontSize:14,fontWeight:700,cursor:"pointer",boxShadow:"0 4px 16px rgba(232,160,32,.3)"}}>Book a free 30-min call →</button>
+          <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:22,fontWeight:700,color:C.t1,marginBottom:6}}>Got a question?</div>
+          <div style={{fontSize:13,color:C.t2,lineHeight:1.6,marginBottom:16}}>Ask anything about your move — we'll reply within 48 hours.</div>
+          <button onClick={openIntake} style={{background:C.gold,color:"#070f1c",border:"none",borderRadius:10,padding:"12px 24px",fontFamily:"Outfit,sans-serif",fontSize:14,fontWeight:700,cursor:"pointer",boxShadow:"0 4px 16px rgba(232,160,32,.3)"}}>Ask a question →</button>
         </div>
       </div>
     </div>
@@ -2415,7 +2415,7 @@ export default function App() {
                       </div>
                     ))}
                     <div style={{marginTop:24}}>
-                      <BookingCard openCal={()=>{setOpenModal(null);setCalOpen(true);}}/>
+                      <BookingCard openIntake={()=>{setOpenModal(null);setSubmitted(false);setEmailError(false);setIntakeOpen(true);}}/>
                     </div>
                   </div>
                 )}
@@ -2457,7 +2457,7 @@ export default function App() {
                         </div>
                       ))}
                     </div>
-                    <BookingCard openCal={()=>{setOpenModal(null);setCalOpen(true);}}/>
+                    <BookingCard openIntake={()=>{setOpenModal(null);setSubmitted(false);setEmailError(false);setIntakeOpen(true);}}/>
                   </div>
                 )}
               </div>

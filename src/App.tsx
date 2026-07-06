@@ -1824,99 +1824,6 @@ export default function App() {
             })()}
 
 
-            {/* ── DECISION VERDICT CARD (in2de / de2in) ── */}
-            {(dir==="in2de"||dir==="de2in")&&_thr&&(
-              <div style={{marginTop:32,borderRadius:18,border:`2px solid ${verdictBorder}`,background:verdictBg,padding:"26px 26px 20px",animation:verdictPulse?"verdictPop 0.6s ease":undefined}}>
-                <div style={{fontSize:11,fontWeight:800,letterSpacing:"2px",textTransform:"uppercase" as const,color:verdictColor,marginBottom:10}}>Your Decision</div>
-                <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:34,fontWeight:700,color:verdictColor,lineHeight:1.15,marginBottom:6}}>{verdictHeadline}</div>
-                <div style={{fontSize:14,color:C.ltxt2,lineHeight:1.6,marginBottom:18}}>{verdictSub}</div>
-                <div style={{display:"flex",gap:8,flexWrap:"wrap" as const,marginBottom:18}}>
-                  {dir==="in2de"&&[
-                    {label:"Take-home",val:`€${de_live.net.toLocaleString()}/mo`},
-                    {label:"Your comfort number",val:`€${_comfortK}K gross`},
-                    {label:"Break-even",val:_liveBe?.ok?`Yr ${_liveBe.yrs}`:"No surplus"},
-                  ].map(kv=>(
-                    <div key={kv.label} style={{flex:1,minWidth:100,background:"rgba(0,0,0,.05)",borderRadius:10,padding:"12px 14px"}}>
-                      <div style={{fontSize:10,color:C.ltxt3,marginBottom:4}}>{kv.label}</div>
-                      <div style={{fontSize:15,fontWeight:700,color:C.ltxt}}>{kv.val}</div>
-                    </div>
-                  ))}
-                  {dir==="de2in"&&_match&&[
-                    {label:"Your net (DE)",val:`€${de_live.net.toLocaleString()}/mo`},
-                    {label:"Match CTC",val:`₹${(_match.match/1e5).toFixed(1)}L`},
-                    {label:"India net",val:`₹${_liveIn.net.toLocaleString()}/mo`},
-                  ].map(kv=>(
-                    <div key={kv.label} style={{flex:1,minWidth:100,background:"rgba(0,0,0,.05)",borderRadius:10,padding:"12px 14px"}}>
-                      <div style={{fontSize:10,color:C.ltxt3,marginBottom:4}}>{kv.label}</div>
-                      <div style={{fontSize:15,fontWeight:700,color:C.ltxt}}>{kv.val}</div>
-                    </div>
-                  ))}
-                </div>
-                {oneThingText&&(
-                  <div style={{background:"rgba(232,160,32,0.08)",border:"1px solid rgba(232,160,32,0.22)",borderRadius:12,padding:"14px 16px",marginBottom:16}}>
-                    <div style={{fontSize:10,fontWeight:700,letterSpacing:"1.8px",textTransform:"uppercase" as const,color:"#e8a020",marginBottom:7}}>One thing to do today</div>
-                    <div style={{fontSize:13,color:C.ltxt,lineHeight:1.65}}>{oneThingText}</div>
-                  </div>
-                )}
-                <button onClick={()=>{navigator.clipboard.writeText(window.location.href);setUrlShared(true);setTimeout(()=>setUrlShared(false),2000);}}
-                  style={{background:"none",border:`1px solid ${verdictBorder}`,borderRadius:20,padding:"5px 14px",fontSize:11,fontWeight:600,color:C.ltxt2,cursor:"pointer",fontFamily:"Outfit,sans-serif"}}>
-                  {urlShared?"✓ Copied!":"🔗 Share these numbers"}
-                </button>
-              </div>
-            )}
-
-            {/* ── 3-CARD GRID (in2de / de2in) ── */}
-            {(dir==="in2de"||dir==="de2in")&&_thr&&(()=>{
-              const de=_liveDe,india=_liveIn;
-              const netPct=Math.round(de.net/de.gross*100);
-              const blueCardStatus=gross>=45300?'eligible':gross>=41042?'possible':'ineligible';
-              const blueCardBadge=blueCardStatus==='eligible'?'✓ Blue Card eligible':blueCardStatus==='possible'?'⚡ Blue Card possible':'⚠ Below Blue Card';
-              const blueCardColor=blueCardStatus==='eligible'?'#00c98b':'#e8a020';
-              const cards=[
-                {
-                  id:'money' as const,
-                  badge:'€€€',accent:'#2563eb',
-                  title:'Your Money',
-                  metric:`€${de.net.toLocaleString()}/mo`,
-                  sub:`${netPct}% of gross reaches your account`,
-                  tags:['Tax','Health & nursing','Pension'],
-                },
-                {
-                  id:'breakdown' as const,
-                  badge:'≡',accent:'#d97706',
-                  title:'Full Breakdown',
-                  metric:dir==='in2de'?`−€${de.gap.toLocaleString()}/mo`:`₹${india.net.toLocaleString()}/mo`,
-                  sub:'Deductions + living cost comparison',
-                  tags:['Deductions','Lifestyle costs','Scenarios'],
-                },
-                {
-                  id:'nextsteps' as const,
-                  badge:'✓',accent:C.gold,
-                  title:'Before You Sign',
-                  metric:blueCardBadge,
-                  metricColor:blueCardColor,
-                  sub:'Things to sort before you accept',
-                  tags:['Deposit ready?','Health insurance','Address reg.'],
-                },
-              ];
-              return (
-                <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:10,marginTop:14}}>
-                  {cards.map(card=>(
-                    <button key={card.id} className="jcard" onClick={()=>setOpenModal(card.id)}
-                      style={{display:"flex",flexDirection:"column",alignItems:"flex-start",gap:6,padding:"14px 16px",borderRadius:14,border:`1px solid ${C.lborder}`,background:C.lbg,cursor:"pointer",textAlign:"left" as const,width:"100%"}}>
-                      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",width:"100%"}}>
-                        <span style={{fontSize:11,fontWeight:800,color:card.accent,background:`${card.accent}15`,padding:"2px 7px",borderRadius:6}}>{card.badge}</span>
-                        <span style={{fontSize:11,fontWeight:600,color:card.accent}}>Open →</span>
-                      </div>
-                      <div style={{fontSize:13,fontWeight:700,color:C.ltxt,lineHeight:1.3}}>{card.title}</div>
-                      <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:18,fontWeight:700,color:card.metricColor??card.accent,lineHeight:1.2}}>{card.metric}</div>
-                      <div style={{fontSize:11,color:C.ltxt3,lineHeight:1.4}}>{card.sub}</div>
-                    </button>
-                  ))}
-                </div>
-              );
-            })()}
-
             {/* ── OPP VERDICT CARD + 2-CARD GRID ── */}
             {dir==="opp"&&_oppR&&(
               <>
@@ -2257,6 +2164,75 @@ export default function App() {
 
           </div>
         </div>
+
+        {/* ── DECISION VERDICT CARD + 3-CARD GRID (in2de / de2in) ── */}
+        {(dir==="in2de"||dir==="de2in")&&_thr&&(()=>{
+          const de=_liveDe,india=_liveIn;
+          const netPct=Math.round(de.net/de.gross*100);
+          const blueCardStatus=gross>=45300?'eligible':gross>=41042?'possible':'ineligible';
+          const blueCardBadge=blueCardStatus==='eligible'?'✓ Blue Card eligible':blueCardStatus==='possible'?'⚡ Blue Card possible':'⚠ Below Blue Card';
+          const blueCardColor=blueCardStatus==='eligible'?'#00c98b':'#e8a020';
+          const cards=[
+            {id:'money' as const,badge:'€€€',accent:'#2563eb',title:'Your Money',metric:`€${de.net.toLocaleString()}/mo`,sub:`${netPct}% of gross reaches your account`},
+            {id:'breakdown' as const,badge:'≡',accent:'#d97706',title:'Full Breakdown',metric:dir==='in2de'?`−€${de.gap.toLocaleString()}/mo`:`₹${india.net.toLocaleString()}/mo`,sub:'Deductions + living cost comparison'},
+            {id:'nextsteps' as const,badge:'✓',accent:C.gold,title:'Before You Sign',metric:blueCardBadge,metricColor:blueCardColor,sub:'Things to sort before you accept'},
+          ];
+          return (
+            <div style={{maxWidth:1060,margin:"0 auto",padding:"0 28px"}}>
+              <div style={{marginTop:32,borderRadius:18,border:`2px solid ${verdictBorder}`,background:verdictBg,padding:"26px 26px 20px",animation:verdictPulse?"verdictPop 0.6s ease":undefined}}>
+                <div style={{fontSize:11,fontWeight:800,letterSpacing:"2px",textTransform:"uppercase" as const,color:verdictColor,marginBottom:10}}>Your Decision</div>
+                <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:34,fontWeight:700,color:verdictColor,lineHeight:1.15,marginBottom:6}}>{verdictHeadline}</div>
+                <div style={{fontSize:14,color:C.ltxt2,lineHeight:1.6,marginBottom:18}}>{verdictSub}</div>
+                <div style={{display:"flex",gap:8,flexWrap:"wrap" as const,marginBottom:18}}>
+                  {dir==="in2de"&&[
+                    {label:"Take-home",val:`€${de_live.net.toLocaleString()}/mo`},
+                    {label:"Your comfort number",val:`€${_comfortK}K gross`},
+                    {label:"Break-even",val:_liveBe?.ok?`Yr ${_liveBe.yrs}`:"No surplus"},
+                  ].map(kv=>(
+                    <div key={kv.label} style={{flex:1,minWidth:100,background:"rgba(0,0,0,.05)",borderRadius:10,padding:"12px 14px"}}>
+                      <div style={{fontSize:10,color:C.ltxt3,marginBottom:4}}>{kv.label}</div>
+                      <div style={{fontSize:15,fontWeight:700,color:C.ltxt}}>{kv.val}</div>
+                    </div>
+                  ))}
+                  {dir==="de2in"&&_match&&[
+                    {label:"Your net (DE)",val:`€${de_live.net.toLocaleString()}/mo`},
+                    {label:"Match CTC",val:`₹${(_match.match/1e5).toFixed(1)}L`},
+                    {label:"India net",val:`₹${_liveIn.net.toLocaleString()}/mo`},
+                  ].map(kv=>(
+                    <div key={kv.label} style={{flex:1,minWidth:100,background:"rgba(0,0,0,.05)",borderRadius:10,padding:"12px 14px"}}>
+                      <div style={{fontSize:10,color:C.ltxt3,marginBottom:4}}>{kv.label}</div>
+                      <div style={{fontSize:15,fontWeight:700,color:C.ltxt}}>{kv.val}</div>
+                    </div>
+                  ))}
+                </div>
+                {oneThingText&&(
+                  <div style={{background:"rgba(232,160,32,0.08)",border:"1px solid rgba(232,160,32,0.22)",borderRadius:12,padding:"14px 16px",marginBottom:16}}>
+                    <div style={{fontSize:10,fontWeight:700,letterSpacing:"1.8px",textTransform:"uppercase" as const,color:"#e8a020",marginBottom:7}}>One thing to do today</div>
+                    <div style={{fontSize:13,color:C.ltxt,lineHeight:1.65}}>{oneThingText}</div>
+                  </div>
+                )}
+                <button onClick={()=>{navigator.clipboard.writeText(window.location.href);setUrlShared(true);setTimeout(()=>setUrlShared(false),2000);}}
+                  style={{background:"none",border:`1px solid ${verdictBorder}`,borderRadius:20,padding:"5px 14px",fontSize:11,fontWeight:600,color:C.ltxt2,cursor:"pointer",fontFamily:"Outfit,sans-serif"}}>
+                  {urlShared?"✓ Copied!":"🔗 Share these numbers"}
+                </button>
+              </div>
+              <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:10,marginTop:12}}>
+                {cards.map(card=>(
+                  <button key={card.id} className="jcard" onClick={()=>setOpenModal(card.id)}
+                    style={{display:"flex",flexDirection:"column",alignItems:"flex-start",gap:6,padding:"14px 16px",borderRadius:14,border:`1px solid ${C.lborder}`,background:C.lbg,cursor:"pointer",textAlign:"left" as const,width:"100%"}}>
+                    <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",width:"100%"}}>
+                      <span style={{fontSize:11,fontWeight:800,color:card.accent,background:`${card.accent}15`,padding:"2px 7px",borderRadius:6}}>{card.badge}</span>
+                      <span style={{fontSize:11,fontWeight:600,color:card.accent}}>Open →</span>
+                    </div>
+                    <div style={{fontSize:13,fontWeight:700,color:C.ltxt,lineHeight:1.3}}>{card.title}</div>
+                    <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:18,fontWeight:700,color:(card as {metricColor?:string}).metricColor??card.accent,lineHeight:1.2}}>{card.metric}</div>
+                    <div style={{fontSize:11,color:C.ltxt3,lineHeight:1.4}}>{card.sub}</div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          );
+        })()}
 
         {/* ── NARRATIVE CALLOUT (below right calculator card) ── */}
         {(dir==="in2de"||dir==="de2in")&&(()=>{

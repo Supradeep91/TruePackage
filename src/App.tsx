@@ -1601,7 +1601,7 @@ export default function App() {
               const dc=CITIES.de[deCity]||CITIES.de.Munich;
               const wgRange=(DE_RENT_RANGES['wg'] as Record<string,[number,number]>)[deCity]||DE_RENT_RANGES['wg']['Munich'];
               const wgMid=Math.round((wgRange[0]+wgRange[1])/2);
-              const monthlyFixed=wgMid+125+Math.round((dc.groc[0]+dc.groc[1])/2)+dc.trans; // WG+health+groc+transit
+              const monthlyFixed=wgMid+125+dc.groc[0]+dc.trans; // WG+health+groc(student lower bound)+transit
               const partTimeMonthly=600; // realistic: ~€600/mo (120 days/yr limit)
               const familySupportEur=Math.round(studentFamilySupport/rate);
               const monthlyGap=Math.max(0,monthlyFixed-partTimeMonthly-familySupportEur);
@@ -1620,7 +1620,7 @@ export default function App() {
                   <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:20}}>
                     {[
                       {label:"Blocked Account (Sperrkonto)",val:`€${blockedAccTotal.toLocaleString()}`,sub:`€11,208 × ${studentDuration} yr · shown at visa`,c:"#a78bfa"},
-                      {label:"Monthly budget",val:`€${monthlyFixed.toLocaleString()}/mo`,sub:"WG rent + health + groceries + transit",c:"#a78bfa"},
+                      {label:"Monthly budget",val:`€${monthlyFixed.toLocaleString()}/mo`,sub:"WG rent + health + groceries (cooking) + transit",c:"#a78bfa"},
                       {label:"Part-time offset",val:`+€${partTimeMonthly}/mo`,sub:"120 days/yr · Minijob + SHK realistic",c:"#10d98c"},
                       {label:"Monthly gap",val:monthlyGap<=0?"Covered ✓":`€${monthlyGap.toLocaleString()}/mo`,sub:monthlyGap<=0?"Family support + work covers all costs":"Needed from savings or family",c:gapColor},
                     ].map(x=>(
@@ -2080,10 +2080,10 @@ export default function App() {
                     {sub(`≈ €${Math.round(studentSavings/rate).toLocaleString()} · used for Sperrkonto + deposit + early gap months`)}
                   </>}
 
-                  {dir!=="opp"&&divider()}
+                  {dir!=="opp"&&dir!=="student"&&divider()}
 
                   {/* ── NUMBERS ── */}
-                  {dir!=="opp"&&<>
+                  {dir!=="opp"&&dir!=="student"&&<>
                     {sec("Numbers")}
                     {sliderField(
                       dir==="in2de"?"Your Indian CTC":"India offer CTC",

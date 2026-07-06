@@ -1545,59 +1545,14 @@ export default function App() {
           <p style={{fontSize:17,color:C.ltxt2,lineHeight:1.7,maxWidth:520,margin:"0 auto 40px"}}>
             Built for Indians navigating Germany — see your real take-home, true living costs, and whether the numbers actually work.
           </p>
-          <a href="#pick" style={{display:"inline-flex",alignItems:"center",gap:8,background:C.ltxt,color:C.lbg,borderRadius:10,padding:"13px 28px",fontFamily:"Outfit,sans-serif",fontSize:15,fontWeight:600,textDecoration:"none",letterSpacing:".2px"}}>
-            Pick your calculator →
+          <a href="#calculator" style={{display:"inline-flex",alignItems:"center",gap:8,background:C.ltxt,color:C.lbg,borderRadius:10,padding:"13px 28px",fontFamily:"Outfit,sans-serif",fontSize:15,fontWeight:600,textDecoration:"none",letterSpacing:".2px"}}>
+            Start calculating →
           </a>
         </div>
       </section>
 
-      {/* PICKER — 2×2 cards */}
-      <section id="pick" style={{background:C.lbg2,padding:"56px 28px 72px",borderTop:`1px solid ${C.lborder}`}}>
-        <div style={{maxWidth:880,margin:"0 auto"}}>
-          <p style={{fontSize:11,fontWeight:700,letterSpacing:"2.5px",textTransform:"uppercase",color:C.ltxt3,textAlign:"center",marginBottom:8}}>What do you need to figure out?</p>
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16,marginTop:24}}>
-            {([
-              {d:"in2de"   as Dir, icon:"IN→DE", title:"India → Germany",    q:"Is this German offer worth leaving India?",   tags:["Take-home","Tax","Parity threshold"],  accent:"#2563eb"},
-              {d:"de2in"   as Dir, icon:"DE→IN", title:"Germany → India",    q:"What CTC matches your German lifestyle?",    tags:["Match CTC","Purchasing power","Trade-offs"], accent:"#d97706"},
-              {d:"opp"     as Dir, icon:"RUNWAY", title:"Opportunity Card",   q:"How long will my savings last without a job?", tags:["Runway","Burn rate","Target salary"],  accent:"#059669"},
-              {d:"student" as Dir, icon:"STUDY",  title:"Student Planner",    q:"Can I actually afford to study in Germany?",  tags:["Sperrkonto","Part-time work","Funding gap"], accent:"#7c3aed"},
-            ]).map(item=>(
-              <button key={item.d} className="jcard" onClick={()=>{
-                setDir(item.d);setWhatIfGross(null);
-                setTimeout(()=>document.getElementById("calculator")?.scrollIntoView({behavior:"smooth",block:"start"}),50);
-              }} style={{display:"flex",flexDirection:"column",alignItems:"flex-start",gap:12,padding:"22px 24px",borderRadius:14,
-                border:`1px solid ${C.lborder}`,background:C.lbg,fontFamily:"Outfit,sans-serif",textAlign:"left",cursor:"pointer"}}>
-                <span style={{fontSize:11,fontWeight:800,letterSpacing:"1px",color:item.accent,background:`${item.accent}12`,border:`1px solid ${item.accent}30`,borderRadius:6,padding:"3px 8px"}}>{item.icon}</span>
-                <div>
-                  <div style={{fontSize:15,fontWeight:700,color:C.ltxt,marginBottom:5}}>{item.title}</div>
-                  <div style={{fontSize:13,color:item.accent,fontWeight:600,marginBottom:10,lineHeight:1.4}}>→ {item.q}</div>
-                  <div style={{display:"flex",gap:6,flexWrap:"wrap" as const}}>
-                    {item.tags.map(t=>(
-                      <span key={t} style={{fontSize:10,fontWeight:600,letterSpacing:".5px",padding:"3px 8px",borderRadius:20,background:`${item.accent}10`,color:item.accent,border:`1px solid ${item.accent}22`}}>{t}</span>
-                    ))}
-                  </div>
-                </div>
-              </button>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* CALCULATOR — entered after picking */}
+      {/* CALCULATOR */}
       <section id="calculator" style={{minHeight:"100vh",paddingTop:56,paddingBottom:80,background:C.lbg}}>
-        {/* Active tool breadcrumb */}
-        <div style={{maxWidth:1060,margin:"0 auto",padding:"0 28px 32px"}}>
-          <div style={{display:"flex",alignItems:"center",gap:12}}>
-            <button onClick={()=>document.getElementById("pick")?.scrollIntoView({behavior:"smooth",block:"start"})}
-              style={{background:"none",border:"none",cursor:"pointer",fontSize:12,color:C.ltxt3,fontFamily:"Outfit,sans-serif",padding:0,display:"flex",alignItems:"center",gap:4}}>
-              ← All calculators
-            </button>
-            <span style={{color:C.lborder}}>·</span>
-            <span style={{fontSize:12,fontWeight:600,color:{in2de:"#2563eb",de2in:"#d97706",opp:"#059669",student:"#7c3aed"}[dir]}}>
-              {{in2de:"India → Germany",de2in:"Germany → India",opp:"Opportunity Card",student:"Student Planner"}[dir]}
-            </span>
-          </div>
-        </div>
         <div className="main-grid" style={{maxWidth:1060,margin:"0 auto",padding:"0 28px",display:"grid",gridTemplateColumns:"1fr 380px",gap:72,alignItems:"start"}}>
 
           {/* ── LEFT: narrative + live output ── */}

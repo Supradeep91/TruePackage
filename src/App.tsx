@@ -2443,7 +2443,7 @@ export default function App() {
                 <div style={{marginBottom:20}}>
                   <div style={{fontSize:11,fontWeight:600,letterSpacing:"1.5px",textTransform:"uppercase" as const,color:C.t3,marginBottom:10}}>What is your situation?</div>
                   <div style={{display:"flex",flexWrap:"wrap" as const,gap:8}}>
-                    {["I have a Germany offer","Considering Job Hunt Visa","In Germany, thinking of returning","Something else"].map(opt=>(
+                    {["I have a Germany offer","Considering Opportunity Card","In Germany, thinking of returning","Something else"].map(opt=>(
                       <button key={opt} onClick={()=>setSituation(opt)} style={pillStyle(situation===opt)}>{opt}</button>
                     ))}
                   </div>

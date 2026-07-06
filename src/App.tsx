@@ -1516,7 +1516,7 @@ export default function App() {
           {([
             {d:"in2de" as Dir, label:"India → Germany"},
             {d:"de2in" as Dir, label:"Germany → India"},
-            {d:"opp"   as Dir, label:"Runway"},
+            {d:"opp"   as Dir, label:"Job Hunt Visa"},
             {d:"student" as Dir, label:"Student"},
           ]).map(item=>(
             <button key={item.d} onClick={()=>{
@@ -1924,7 +1924,7 @@ export default function App() {
             {dir==="opp"&&_oppR&&(
               <>
                 <div style={{marginTop:32,borderRadius:18,border:`2px solid ${_oppPinnedColor==='#00c98b'?'rgba(0,201,139,0.35)':_oppPinnedColor==='#e8a020'?'rgba(232,160,32,0.35)':'rgba(255,91,91,0.35)'}`,background:_oppPinnedColor==='#00c98b'?'rgba(0,201,139,0.07)':_oppPinnedColor==='#e8a020'?'rgba(232,160,32,0.07)':'rgba(255,91,91,0.07)',padding:"26px 26px 20px"}}>
-                  <div style={{fontSize:11,fontWeight:800,letterSpacing:"2px",textTransform:"uppercase" as const,color:_oppPinnedColor,marginBottom:10}}>Runway Verdict</div>
+                  <div style={{fontSize:11,fontWeight:800,letterSpacing:"2px",textTransform:"uppercase" as const,color:_oppPinnedColor,marginBottom:10}}>Job Hunt Verdict</div>
                   <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:34,fontWeight:700,color:_oppPinnedColor,lineHeight:1.15,marginBottom:6}}>{_oppPinnedText}</div>
                   <div style={{fontSize:14,color:C.ltxt2,lineHeight:1.6,marginBottom:18}}>{_oppConfidenceText}</div>
                   <div style={{display:"flex",gap:8,flexWrap:"wrap" as const}}>
@@ -1942,7 +1942,7 @@ export default function App() {
                 </div>
                 <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginTop:14}}>
                   {[
-                    {id:'runway' as const,badge:'📊',accent:'#2563eb',title:'Runway Details',metric:_oppRunwayText,sub:`€${savings.toLocaleString()} → ${_oppRunwayMonths} months`,tags:['Monthly burn','Lifestyle costs','Target gross']},
+                    {id:'runway' as const,badge:'📊',accent:'#2563eb',title:'Job Hunt Details',metric:_oppRunwayText,sub:`€${savings.toLocaleString()} → ${_oppRunwayMonths} months`,tags:['Monthly burn','Lifestyle costs','Target gross']},
                     {id:'prelanding' as const,badge:'✓',accent:C.gold,title:'Before You Land',metric:'5 checks',sub:'Pre-departure action list',tags:['Bank account','Job search','Health ins.']},
                   ].map(card=>(
                     <button key={card.id} className="jcard" onClick={()=>setOpenModal(card.id)}
@@ -2316,7 +2316,7 @@ export default function App() {
             <div style={{background:C.bg1,borderRadius:20,maxWidth:720,width:"100%",maxHeight:"90vh",overflowY:"auto" as const,position:"relative" as const,boxShadow:"0 20px 60px rgba(0,0,0,0.5)"}}>
               <div style={{position:"sticky",top:0,background:C.bg1,borderBottom:`1px solid ${C.b0}`,padding:"14px 20px",display:"flex",justifyContent:"space-between",alignItems:"center",zIndex:1,borderRadius:"20px 20px 0 0"}}>
                 <span style={{fontSize:13,fontWeight:700,color:C.t2,letterSpacing:".3px"}}>
-                  {openModal==='money'?'Your Money':openModal==='breakdown'?'Full Breakdown':openModal==='nextsteps'?'Before You Sign':openModal==='runway'?'Runway Details':'Before You Land'}
+                  {openModal==='money'?'Your Money':openModal==='breakdown'?'Full Breakdown':openModal==='nextsteps'?'Before You Sign':openModal==='runway'?'Job Hunt Details':'Before You Land'}
                 </span>
                 <button onClick={()=>setOpenModal(null)}
                   style={{background:"none",border:`1px solid ${C.b1}`,borderRadius:8,padding:"5px 12px",color:C.t3,cursor:"pointer",fontSize:13,fontFamily:"Outfit,sans-serif"}}>
@@ -2443,7 +2443,7 @@ export default function App() {
                 <div style={{marginBottom:20}}>
                   <div style={{fontSize:11,fontWeight:600,letterSpacing:"1.5px",textTransform:"uppercase" as const,color:C.t3,marginBottom:10}}>What is your situation?</div>
                   <div style={{display:"flex",flexWrap:"wrap" as const,gap:8}}>
-                    {["I have a Germany offer","Considering Opportunity Card","In Germany, thinking of returning","Something else"].map(opt=>(
+                    {["I have a Germany offer","Considering Job Hunt Visa","In Germany, thinking of returning","Something else"].map(opt=>(
                       <button key={opt} onClick={()=>setSituation(opt)} style={pillStyle(situation===opt)}>{opt}</button>
                     ))}
                   </div>

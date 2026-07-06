@@ -1552,7 +1552,7 @@ export default function App() {
       </section>
 
       {/* CALCULATOR */}
-      <section id="calculator" style={{minHeight:"100vh",paddingTop:56,paddingBottom:80,background:C.lbg}}>
+      <section id="calculator" style={{paddingTop:56,paddingBottom:80,background:C.lbg}}>
         <div className="main-grid" style={{maxWidth:1060,margin:"0 auto",padding:"0 28px",display:"grid",gridTemplateColumns:"1fr 380px",gap:72,alignItems:"start"}}>
 
           {/* ── LEFT: narrative + live output ── */}
@@ -1900,20 +1900,17 @@ export default function App() {
                 },
               ];
               return (
-                <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:12,marginTop:14}}>
+                <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:10,marginTop:14}}>
                   {cards.map(card=>(
                     <button key={card.id} className="jcard" onClick={()=>setOpenModal(card.id)}
-                      style={{display:"flex",flexDirection:"column",alignItems:"flex-start",gap:10,padding:"18px 18px 14px",borderRadius:14,border:`1px solid ${C.lborder}`,background:C.lbg,cursor:"pointer",textAlign:"left" as const,width:"100%"}}>
-                      <span style={{fontSize:13,fontWeight:800,color:card.accent,background:`${card.accent}15`,padding:"3px 8px",borderRadius:6}}>{card.badge}</span>
-                      <div style={{fontSize:13,fontWeight:700,color:C.ltxt,lineHeight:1.3}}>{card.title}</div>
-                      <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:20,fontWeight:700,color:card.metricColor??card.accent,lineHeight:1.2}}>{card.metric}</div>
-                      <div style={{fontSize:11,color:C.ltxt3,lineHeight:1.45}}>{card.sub}</div>
-                      <div style={{display:"flex",flexWrap:"wrap" as const,gap:4,marginTop:2}}>
-                        {card.tags.map(t=>(
-                          <span key={t} style={{fontSize:10,fontWeight:600,padding:"2px 7px",borderRadius:20,background:`${card.accent}15`,color:card.accent}}>{t}</span>
-                        ))}
+                      style={{display:"flex",flexDirection:"column",alignItems:"flex-start",gap:6,padding:"14px 16px",borderRadius:14,border:`1px solid ${C.lborder}`,background:C.lbg,cursor:"pointer",textAlign:"left" as const,width:"100%"}}>
+                      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",width:"100%"}}>
+                        <span style={{fontSize:11,fontWeight:800,color:card.accent,background:`${card.accent}15`,padding:"2px 7px",borderRadius:6}}>{card.badge}</span>
+                        <span style={{fontSize:11,fontWeight:600,color:card.accent}}>Open →</span>
                       </div>
-                      <div style={{fontSize:11,fontWeight:600,color:card.accent,marginTop:2}}>Open →</div>
+                      <div style={{fontSize:13,fontWeight:700,color:C.ltxt,lineHeight:1.3}}>{card.title}</div>
+                      <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:18,fontWeight:700,color:card.metricColor??card.accent,lineHeight:1.2}}>{card.metric}</div>
+                      <div style={{fontSize:11,color:C.ltxt3,lineHeight:1.4}}>{card.sub}</div>
                     </button>
                   ))}
                 </div>

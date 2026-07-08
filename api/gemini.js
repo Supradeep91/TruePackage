@@ -3,7 +3,7 @@
 export const config = { runtime: 'edge' };
 
 export default async function handler(req) {
-  const key = process.env.GEMINI_KEY ?? process.env.VITE_GEMINI_KEY ?? '';
+  const key = process.env.GEMINI_KEY ?? '';
   if (!key) {
     return new Response(JSON.stringify({ error: 'Gemini key not configured' }), {
       status: 500,

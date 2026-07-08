@@ -2223,7 +2223,11 @@ export default function App() {
                   {urlShared?"✓ Copied!":"🔗 Share these numbers"}
                 </button>
               </div>
-              <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:10,marginTop:12}}>
+              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginTop:24,marginBottom:10}}>
+                <div style={{fontSize:11,fontWeight:700,letterSpacing:"2px",textTransform:"uppercase" as const,color:C.ltxt3}}>Dig into the details</div>
+                <div style={{fontSize:12,color:C.ltxt3}}>Click any card to open →</div>
+              </div>
+              <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:10,marginTop:0}}>
                 {cards.map(card=>(
                   <button key={card.id} className="jcard" onClick={()=>setOpenModal(card.id)}
                     style={{display:"flex",flexDirection:"column",alignItems:"flex-start",gap:6,padding:"14px 16px",borderRadius:14,border:`1px solid ${C.lborder}`,background:C.lbg,cursor:"pointer",textAlign:"left" as const,width:"100%"}}>

@@ -1825,6 +1825,42 @@ export default function App() {
             })()}
 
 
+            {/* ── 3-CARD GRID (in2de / de2in) — in left column, always visible ── */}
+            {(dir==="in2de"||dir==="de2in")&&_thr&&(()=>{
+              const de=_liveDe,india=_liveIn;
+              const netPct=Math.round(de.net/de.gross*100);
+              const blueCardStatus=gross>=45300?'eligible':gross>=41042?'possible':'ineligible';
+              const blueCardBadge=blueCardStatus==='eligible'?'✓ Blue Card eligible':blueCardStatus==='possible'?'⚡ Blue Card possible':'⚠ Below Blue Card';
+              const blueCardColor=blueCardStatus==='eligible'?'#00c98b':'#e8a020';
+              const cards=[
+                {id:'money' as const,badge:'€€€',accent:'#2563eb',title:'Your Money',metric:`€${de.net.toLocaleString()}/mo`,sub:`${netPct}% of gross reaches your account`},
+                {id:'breakdown' as const,badge:'≡',accent:'#d97706',title:'Full Breakdown',metric:dir==='in2de'?`−€${de.gap.toLocaleString()}/mo`:`₹${india.net.toLocaleString()}/mo`,sub:'Deductions + living cost comparison'},
+                {id:'nextsteps' as const,badge:'✓',accent:C.gold,title:'Before You Sign',metric:blueCardBadge,metricColor:blueCardColor,sub:'Things to sort before you accept'},
+              ];
+              return (
+                <div style={{marginTop:20}}>
+                  <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}>
+                    <div style={{fontSize:11,fontWeight:700,letterSpacing:"2px",textTransform:"uppercase" as const,color:C.ltxt3}}>Dig into the details</div>
+                    <div style={{fontSize:12,color:C.ltxt3}}>Click any card to open →</div>
+                  </div>
+                  <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:10}}>
+                    {cards.map(card=>(
+                      <button key={card.id} className="jcard" onClick={()=>setOpenModal(card.id)}
+                        style={{display:"flex",flexDirection:"column",alignItems:"flex-start",gap:6,padding:"14px 16px",borderRadius:14,border:`1px solid ${C.lborder}`,background:C.lbg,cursor:"pointer",textAlign:"left" as const,width:"100%"}}>
+                        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",width:"100%"}}>
+                          <span style={{fontSize:11,fontWeight:800,color:card.accent,background:`${card.accent}15`,padding:"2px 7px",borderRadius:6}}>{card.badge}</span>
+                          <span style={{fontSize:11,fontWeight:600,color:card.accent}}>Open →</span>
+                        </div>
+                        <div style={{fontSize:13,fontWeight:700,color:C.ltxt,lineHeight:1.3}}>{card.title}</div>
+                        <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:18,fontWeight:700,color:(card as {metricColor?:string}).metricColor??card.accent,lineHeight:1.2}}>{card.metric}</div>
+                        <div style={{fontSize:11,color:C.ltxt3,lineHeight:1.4}}>{card.sub}</div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              );
+            })()}
+
             {/* ── OPP VERDICT CARD + 2-CARD GRID ── */}
             {dir==="opp"&&_oppR&&(
               <>
@@ -2222,24 +2258,6 @@ export default function App() {
                   style={{background:"none",border:`1px solid ${verdictBorder}`,borderRadius:20,padding:"5px 14px",fontSize:11,fontWeight:600,color:C.ltxt2,cursor:"pointer",fontFamily:"Outfit,sans-serif"}}>
                   {urlShared?"✓ Copied!":"🔗 Share these numbers"}
                 </button>
-              </div>
-              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginTop:24,marginBottom:10}}>
-                <div style={{fontSize:11,fontWeight:700,letterSpacing:"2px",textTransform:"uppercase" as const,color:C.ltxt3}}>Dig into the details</div>
-                <div style={{fontSize:12,color:C.ltxt3}}>Click any card to open →</div>
-              </div>
-              <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:10,marginTop:0}}>
-                {cards.map(card=>(
-                  <button key={card.id} className="jcard" onClick={()=>setOpenModal(card.id)}
-                    style={{display:"flex",flexDirection:"column",alignItems:"flex-start",gap:6,padding:"14px 16px",borderRadius:14,border:`1px solid ${C.lborder}`,background:C.lbg,cursor:"pointer",textAlign:"left" as const,width:"100%"}}>
-                    <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",width:"100%"}}>
-                      <span style={{fontSize:11,fontWeight:800,color:card.accent,background:`${card.accent}15`,padding:"2px 7px",borderRadius:6}}>{card.badge}</span>
-                      <span style={{fontSize:11,fontWeight:600,color:card.accent}}>Open →</span>
-                    </div>
-                    <div style={{fontSize:13,fontWeight:700,color:C.ltxt,lineHeight:1.3}}>{card.title}</div>
-                    <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:18,fontWeight:700,color:(card as {metricColor?:string}).metricColor??card.accent,lineHeight:1.2}}>{card.metric}</div>
-                    <div style={{fontSize:11,color:C.ltxt3,lineHeight:1.4}}>{card.sub}</div>
-                  </button>
-                ))}
               </div>
             </div>
           );

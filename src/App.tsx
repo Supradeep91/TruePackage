@@ -1399,6 +1399,14 @@ export default function App() {
   const verdictBg = verdictColor==='#00c98b' ? 'rgba(0,201,139,0.08)' : verdictColor==='#e8a020' ? 'rgba(232,160,32,0.08)' : verdictColor==='#ff5b5b' ? 'rgba(255,91,91,0.08)' : 'transparent';
   const verdictBorder = verdictColor==='#00c98b' ? 'rgba(0,201,139,0.25)' : verdictColor==='#e8a020' ? 'rgba(232,160,32,0.25)' : 'rgba(255,91,91,0.25)';
 
+  const verdictWhy = dir==='in2de' && _thr
+    ? (_thr.remEur > 0
+        ? `Based on ${deCity} rent (€${_thr.rentUsed}/mo) + €${_thr.remEur}/mo remittance to ${inCity}.`
+        : `Based on ${deCity} rent (€${_thr.rentUsed}/mo) and local cost of living.`)
+    : dir==='de2in' && _match
+      ? `Based on ${inCity} rent (₹${Math.round(_match.costs.rent/1000)}K/mo) + lifestyle-match expenses.`
+      : '';
+
   const verdictHeadline = dir==='in2de' && _thr
     ? (_grossAboveComfort ? `Strong offer — €${_aboveComfortK}K above comfort`
       : _grossAboveMatch ? `Good offer — counter to €${_comfortK}K`
@@ -2040,7 +2048,7 @@ export default function App() {
                       dir==="in2de"?"German gross offer":"Your German gross",
                       gross,setGross,40000,150000,5000,
                       `€${(gross/1000).toFixed(0)}K/yr`,
-                      `≈ ₹${(gross*rate/1e5).toFixed(1)}L/yr · net ~€${calcDE(gross,fam!=="single"?3:1,false).net.toLocaleString()}/mo`,
+                      `≈ ₹${(gross*rate/1e5).toFixed(1)}L/yr · net ~€${de_live.net.toLocaleString()}/mo`,
                       "gross"
                     )}
                     {dir==="de2in"&&<div style={{marginBottom:12}}>
@@ -2225,7 +2233,8 @@ export default function App() {
             <div id="verdict-cards" style={{maxWidth:1060,margin:"0 auto",padding:"0 28px"}}>
               <div style={{marginTop:32,borderRadius:18,border:`2px solid ${verdictBorder}`,background:verdictBg,padding:"26px 26px 20px",animation:verdictPulse?"verdictPop 0.6s ease":undefined}}>
                 <div style={{fontSize:11,fontWeight:800,letterSpacing:"2px",textTransform:"uppercase" as const,color:verdictColor,marginBottom:10}}>Your Decision</div>
-                <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:34,fontWeight:700,color:verdictColor,lineHeight:1.15,marginBottom:6}}>{verdictHeadline}</div>
+                <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:34,fontWeight:700,color:verdictColor,lineHeight:1.15,marginBottom:4}}>{verdictHeadline}</div>
+                {verdictWhy&&<div style={{fontSize:12,color:C.ltxt3,marginBottom:8,lineHeight:1.4}}>{verdictWhy}</div>}
                 <div style={{fontSize:14,color:C.ltxt2,lineHeight:1.6,marginBottom:18}}>{verdictSub}</div>
                 <div style={{display:"flex",gap:8,flexWrap:"wrap" as const,marginBottom:18}}>
                   {dir==="in2de"&&[

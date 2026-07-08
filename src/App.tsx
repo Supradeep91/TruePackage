@@ -1703,7 +1703,8 @@ export default function App() {
                       <span style={{fontFamily:"'Cormorant Garamond',serif",fontSize:64,fontWeight:700,color:"#92400e",lineHeight:1}}>{heroVal}</span>
                       <span style={{fontSize:16,color:C.ltxt3,fontWeight:500}}>/month</span>
                     </div>
-                    <div style={{fontSize:13,color:C.ltxt3}}>{heroSub}</div>
+                    <div style={{fontSize:14,color:C.ltxt2}}>{heroSub}</div>
+                    {dir==="in2de"&&<div style={{fontSize:12,color:C.ltxt3,marginTop:3}}>after German income tax, health insurance &amp; pension</div>}
                   </div>
 
                   {/* Compact deduction summary — always visible */}
@@ -2158,6 +2159,13 @@ export default function App() {
                   })()}
 
 
+                {(dir==="in2de"||dir==="de2in")&&_thr&&<div style={{marginTop:16,paddingTop:14,borderTop:"1px solid rgba(255,255,255,.08)",textAlign:"center" as const}}>
+                  <button onClick={()=>document.getElementById("verdict-cards")?.scrollIntoView({behavior:"smooth",block:"start"})}
+                    style={{background:"none",border:"none",cursor:"pointer",fontFamily:"Outfit,sans-serif",fontSize:11,color:C.t3,padding:0}}>
+                    ↓ Your Money · Full Breakdown · Before You Sign
+                  </button>
+                </div>}
+
                 </div>
               );
             })()}
@@ -2178,16 +2186,15 @@ export default function App() {
             {id:'nextsteps' as const,badge:'✓',accent:C.gold,title:'Before You Sign',metric:blueCardBadge,metricColor:blueCardColor,sub:'Things to sort before you accept'},
           ];
           return (
-            <div style={{maxWidth:1060,margin:"0 auto",padding:"0 28px"}}>
+            <div id="verdict-cards" style={{maxWidth:1060,margin:"0 auto",padding:"0 28px"}}>
               <div style={{marginTop:32,borderRadius:18,border:`2px solid ${verdictBorder}`,background:verdictBg,padding:"26px 26px 20px",animation:verdictPulse?"verdictPop 0.6s ease":undefined}}>
                 <div style={{fontSize:11,fontWeight:800,letterSpacing:"2px",textTransform:"uppercase" as const,color:verdictColor,marginBottom:10}}>Your Decision</div>
                 <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:34,fontWeight:700,color:verdictColor,lineHeight:1.15,marginBottom:6}}>{verdictHeadline}</div>
                 <div style={{fontSize:14,color:C.ltxt2,lineHeight:1.6,marginBottom:18}}>{verdictSub}</div>
                 <div style={{display:"flex",gap:8,flexWrap:"wrap" as const,marginBottom:18}}>
                   {dir==="in2de"&&[
-                    {label:"Take-home",val:`€${de_live.net.toLocaleString()}/mo`},
-                    {label:"Your comfort number",val:`€${_comfortK}K gross`},
-                    {label:"Break-even",val:_liveBe?.ok?`Yr ${_liveBe.yrs}`:"No surplus"},
+                    {label:"Monthly take-home",val:`€${de_live.net.toLocaleString()}/mo`},
+                    {label:"Counter offer at minimum",val:`€${_comfortK}K gross`},
                   ].map(kv=>(
                     <div key={kv.label} style={{flex:1,minWidth:100,background:"rgba(0,0,0,.05)",borderRadius:10,padding:"12px 14px"}}>
                       <div style={{fontSize:10,color:C.ltxt3,marginBottom:4}}>{kv.label}</div>

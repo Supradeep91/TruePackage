@@ -1272,6 +1272,7 @@ export default function App() {
   const [deCity,setDeCity]=useState(getParam('dc','Munich'));
   const [ctc,setCtc]=useState(Number(getParam('ctc','3000000')));
   const [gross,setGross]=useState(Number(getParam('gross','65000')));
+  const [grossTouched,setGrossTouched]=useState(false);
   const [rem,setRem]=useState(Number(getParam('rem','20000')));
   const [remittanceCurrency,setRemittanceCurrency]=useState<"inr"|"eur">("inr");
   const [commitments,setCommitments]=useState(Number(getParam('comm','0')));
@@ -1451,6 +1452,15 @@ export default function App() {
     _prevVerdictRef.current=_verdictPos;
   // eslint-disable-next-line react-hooks/exhaustive-deps
   },[_verdictPos]);
+
+  // Sync gross to thr.match on first load (once rate is ready), unless user has already touched the slider
+  useEffect(()=>{
+    if(!grossTouched && _thr && rate>1){
+      setGross(Math.round(_thr.match/1000)*1000);
+    }
+  // Only run once when rate first becomes available
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[rate]);
 
   // OPP computed vars
   const _oppR = _liveOpp;
@@ -2046,11 +2056,13 @@ export default function App() {
 
                     {sliderField(
                       dir==="in2de"?"German gross offer":"Your German gross",
-                      gross,setGross,40000,150000,5000,
+                      gross,(v)=>{setGross(v);setGrossTouched(true);},40000,150000,5000,
                       `€${(gross/1000).toFixed(0)}K/yr`,
                       `≈ ₹${(gross*rate/1e5).toFixed(1)}L/yr · net ~€${de_live.net.toLocaleString()}/mo`,
                       "gross"
                     )}
+                    {!grossTouched&&_thr&&<div style={{fontSize:11,color:C.t3,marginTop:-8,marginBottom:10}}>🎯 Showing your target — drag to test a specific offer instead.</div>}
+                    {grossTouched&&_thr&&<button onClick={()=>{setGrossTouched(false);setGross(Math.round(_thr.match/1000)*1000);}} style={{fontSize:11,color:C.gold,background:"none",border:"none",padding:0,cursor:"pointer",textDecoration:"underline",marginTop:-8,marginBottom:10,fontFamily:"Outfit,sans-serif"}}>↩ Reset to my target</button>}
                     {dir==="de2in"&&<div style={{marginBottom:12}}>
                       <div style={{fontSize:13,color:C.t2,marginBottom:8}}>India tax regime</div>
                       <div style={{display:"flex",gap:6,marginBottom:6}}>

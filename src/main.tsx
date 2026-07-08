@@ -5,7 +5,8 @@ import posthog from 'posthog-js';
 import App from './App.tsx';
 import './index.css';
 
-posthog.init('phc_rqtRT8SjM2xHnfXpx55k67nCYGw8mi3MmbAdKziUjkBi',{api_host:'https://eu.i.posthog.com',capture_pageview:true});
+posthog.init('phc_rqtRT8SjM2xHnfXpx55k67nCYGw8mi3MmbAdKziUjkBi',{api_host:'https://eu.i.posthog.com',capture_pageview:false});
+posthog.capture('$pageview');
 
 class EB extends Component<{children:ReactNode},{err:string|null}> {
   state={err:null};

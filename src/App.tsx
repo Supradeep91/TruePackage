@@ -2420,6 +2420,28 @@ export default function App() {
                 )}
                 {openModal==='prelanding'&&(
                   <div>
+                    {/* Visa Requirements section */}
+                    <div style={{marginBottom:20,background:"rgba(124,58,237,.07)",border:"1px solid rgba(124,58,237,.2)",borderRadius:12,padding:"14px 16px"}}>
+                      <div style={{fontSize:12,fontWeight:700,letterSpacing:"1.5px",textTransform:"uppercase" as const,color:"#a78bfa",marginBottom:10}}>Job Seeker Visa — Mandatory Requirements</div>
+                      {[
+                        {label:"Valid passport",note:"Must be valid for the full 6-month visa duration."},
+                        {label:"Recognised qualification",note:"Degree or vocational certificate equivalent to German standards. Get it assessed at anabin.kmk.org before applying."},
+                        {label:"Language proof",note:"Certificate of German (A1+) or English proficiency. IELTS, TestDaF, or Goethe certificates accepted."},
+                        {label:"CV + certified translations",note:"German-format CV with photo (Lichtbild). All certificates need certified German translations."},
+                        {label:"Proof of accommodation",note:"Hotel booking or host letter for at least the first weeks in Germany."},
+                        {label:"Travel health insurance",note:"Must cover the entire stay. Standard expat policies cost ~€60–100/month."},
+                        {label:"Financial proof — Sperrkonto €11,208",note:"Blocked account covering 12 months × €934/mo release. Embassy subsistence requirement is €1,027/mo — keep ~€93/mo extra in liquid savings."},
+                        {label:"Visa application form + biometric photos",note:"Available at the German consulate website. Book your appointment early — slots fill 6–10 weeks in advance."},
+                      ].map((item,i,arr)=>(
+                        <div key={item.label} style={{display:"flex",gap:10,padding:"8px 0",borderBottom:i<arr.length-1?`1px solid rgba(124,58,237,.15)`:"none"}}>
+                          <span style={{color:"#a78bfa",fontWeight:700,marginTop:1,flexShrink:0}}>·</span>
+                          <div>
+                            <span style={{fontSize:13,fontWeight:600,color:"#e9d5ff"}}>{item.label}</span>
+                            <span style={{fontSize:12,color:"#c4b5fd",marginLeft:6}}>{item.note}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                     <div style={{marginBottom:20}}>
                       <div style={{fontSize:14,color:C.t2,lineHeight:1.6,marginBottom:16}}>Things to arrange before you fly to Germany.</div>
                       {[

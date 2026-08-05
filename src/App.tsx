@@ -2003,7 +2003,7 @@ export default function App() {
                     <div style={{marginTop:10,background:"rgba(124,58,237,.08)",border:"1px solid rgba(124,58,237,.2)",borderRadius:8,padding:"10px 12px"}}>
                       <div style={{fontSize:11,fontWeight:700,color:"#a78bfa",marginBottom:4}}>Blocked Account (Sperrkonto)</div>
                       <div style={{fontSize:13,fontWeight:700,color:"#a78bfa"}}>€11,208</div>
-                      <div style={{fontSize:11,color:C.t3,marginTop:2}}>Required by German embassy for job-seeker visa · separate from liquid savings · released ~€934/mo</div>
+                      <div style={{fontSize:11,color:C.t3,marginTop:2}}>Required by German embassy for job-seeker visa · separate from liquid savings · released ~€934/mo · embassy subsistence requirement is €1,027/mo · cover the €93/mo gap from liquid savings</div>
                     </div>
                     <div style={{marginTop:8,fontSize:11,color:C.t3,lineHeight:1.5}}>
                       Total you need: <span style={{color:C.gold,fontWeight:700}}>€{(savings+11208).toLocaleString()}</span> (€{(savings/1000).toFixed(0)}K liquid + €11,208 Sperrkonto)

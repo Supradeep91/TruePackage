@@ -1,0 +1,8 @@
+[
+  {"claim":"[1] LinkedIn supports natural-language intent search with suggested filters and feedback.","class":"feature","pub_date":"2026-09"},
+  {"claim":"[2] Claude and ChatGPT/Codex document app/connector surfaces for MCP tools and optional UI.","class":"feature","pub_date":"2025-07"},
+  {"claim":"[3] Study-abroad products advertise weighted matching, AI matching, or sourced university/cost comparisons.","class":"feature","pub_date":"2026-05"},
+  {"claim":"[4] Leap Scholar reports AI use and decision factors among Indian study-abroad aspirants.","class":"behavior","pub_date":"2026-02"},
+  {"claim":"[5] Press-mediated reports describe individual India-Germany work/return decision cases.","class":"behavior","pub_date":"2026-06"},
+  {"claim":"[6] Adoption, conversion, retention, and willingness to pay for these ideas remain unverified.","class":"behavior","pub_date":"2026-10"}
+]

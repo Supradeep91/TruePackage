@@ -1,0 +1,32 @@
+[
+  {
+    "claim": "[1] Multiple independent publishers already offer India/Germany salary and cost comparisons.",
+    "class": "feature",
+    "pub_date": "2026-09"
+  },
+  {
+    "claim": "[2] PPPCalculator.info's editorial recommends an offer threshold based on PPP equivalence.",
+    "class": "feature",
+    "pub_date": "2026-05"
+  },
+  {
+    "claim": "[3] Current target-user needs and preferences remain unvalidated.",
+    "class": "behavior",
+    "pub_date": "2026-10"
+  },
+  {
+    "claim": "[4] The live TruePackage homepage leads with tax rather than its later offer decision output.",
+    "class": "feature",
+    "pub_date": "2026-10"
+  },
+  {
+    "claim": "[10] The current share button does not encode changed calculator inputs into its copied URL.",
+    "class": "feature",
+    "pub_date": "2026-10"
+  },
+  {
+    "claim": "[11] The data-source register date conflicts with the public data-date label.",
+    "class": "feature",
+    "pub_date": "2026-03"
+  }
+]

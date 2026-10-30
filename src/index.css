@@ -21,6 +21,8 @@
 }
 
 
+.wise-link:hover { text-decoration: underline; }
+
 .currency-input {
   background: none;
   border: none;

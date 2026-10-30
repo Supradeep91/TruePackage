@@ -1517,55 +1517,55 @@ export default function App() {
         @keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
         .jcard{transition:border-color .18s,background .18s,box-shadow .18s;cursor:pointer}
         .jcard:hover{border-color:rgba(0,0,0,0.18)!important;box-shadow:0 2px 12px rgba(0,0,0,.07)!important}
+        .jcard:focus-visible{outline:3px solid #92400e;outline-offset:3px}
+        .journey-title{font-size:56px}
+        @media(max-width:760px){.question-fab{position:static!important;display:block;width:max-content;margin:16px 28px 24px auto!important}}
         .ul-input{background:none;border:none;border-bottom:1px solid rgba(255,255,255,0.12);border-radius:0;outline:none;width:100%;font-family:'Outfit',sans-serif;color:#eef2f9;padding:10px 0 8px;font-size:15px;font-weight:600;transition:border-color .15s}
         .ul-input:focus{border-bottom-color:#f59e0b}
         .ul-select{background:none;border:none;border-bottom:1px solid rgba(255,255,255,0.12);border-radius:0;outline:none;width:100%;font-family:'Outfit',sans-serif;color:#eef2f9;padding:10px 0 8px;font-size:15px;cursor:pointer;transition:border-color .15s;appearance:none}
         .ul-select:focus{border-bottom-color:#f59e0b}
         .pill-sm{flex:1;padding:8px 4px;text-align:center;border-radius:6px;font-family:'Outfit',sans-serif;font-size:12px;cursor:pointer;transition:all .15s;white-space:nowrap;border:1px solid transparent}
-        @media(max-width:860px){.main-grid{grid-template-columns:1fr!important;gap:32px!important}}
-        @media(max-width:760px){.jband-grid{grid-template-columns:1fr 1fr!important}}
-        @media(max-width:480px){.jband-grid{grid-template-columns:1fr!important}}
+        @media(max-width:860px){.main-grid{grid-template-columns:1fr!important;gap:32px!important}.jband-grid{grid-template-columns:1fr 1fr!important}}
+        @media(max-width:760px){.journey-title{font-size:42px}}
+        @media(max-width:480px){.jband-grid{grid-template-columns:1fr!important}.journey-title{font-size:36px}}
       `}</style>
 
       {/* NAV — light zone */}
       <nav style={{position:"fixed",top:0,left:0,right:0,zIndex:100,height:52,padding:"0 28px",display:"flex",alignItems:"center",justifyContent:"space-between",background:C.lbg,borderBottom:`1px solid ${C.lborder}`}}>
         <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:22,fontWeight:700,color:"#92400e",letterSpacing:".5px"}}>TruePackage</div>
-        <div style={{display:"flex",alignItems:"center",gap:4}}>
-          {([
-            {d:"in2de" as Dir, label:"India → Germany"},
-            {d:"de2in" as Dir, label:"Germany → India"},
-            {d:"opp"   as Dir, label:"Job Hunt Visa"},
-            {d:"student" as Dir, label:"Student"},
-          ]).map(item=>(
-            <button key={item.d} onClick={()=>{
-              setDir(item.d);
-              setWhatIfGross(null);
-              setTimeout(()=>document.getElementById("calculator")?.scrollIntoView({behavior:"smooth",block:"start"}),50);
-            }} style={{
-              padding:"5px 13px",borderRadius:20,fontFamily:"Outfit,sans-serif",fontSize:12,fontWeight:600,cursor:"pointer",
-              border:`1px solid ${dir===item.d?C.ltxt:"rgba(0,0,0,.12)"}`,
-              background:dir===item.d?C.ltxt:"transparent",
-              color:dir===item.d?C.lbg:C.ltxt2,
-              transition:"all .15s",
-            }}>
-              {item.label}
-            </button>
-          ))}
-        </div>
+        <a href="#journeys" style={{fontSize:13,fontWeight:600,color:C.ltxt2,textDecoration:"none",padding:"8px 0"}}>Choose a journey</a>
       </nav>
 
-      {/* HERO — centered, full-width */}
-      <section style={{paddingTop:120,paddingBottom:72,background:C.lbg,textAlign:"center"}}>
-        <div style={{maxWidth:680,margin:"0 auto",padding:"0 28px"}}>
-          <h1 style={{fontFamily:"'Cormorant Garamond',serif",fontSize:"clamp(40px,5vw,68px)",fontWeight:700,lineHeight:1.06,color:C.ltxt,marginBottom:16}}>
-            Your offer looks great.<br/><span style={{color:"#92400e"}}>Until tax hits.</span>
-          </h1>
-          <p style={{fontSize:17,color:C.ltxt2,lineHeight:1.7,maxWidth:520,margin:"0 auto 40px"}}>
-            Built for Indians navigating Germany — see your real take-home, true living costs, and whether the numbers actually work.
-          </p>
-          <a href="#calculator" style={{display:"inline-flex",alignItems:"center",gap:8,background:C.ltxt,color:C.lbg,borderRadius:10,padding:"13px 28px",fontFamily:"Outfit,sans-serif",fontSize:15,fontWeight:600,textDecoration:"none",letterSpacing:".2px"}}>
-            Start calculating →
-          </a>
+      {/* HERO — four equally weighted decision journeys */}
+      <section id="journeys" style={{paddingTop:104,paddingBottom:64,background:C.lbg}}>
+        <div style={{maxWidth:1180,margin:"0 auto",padding:"0 28px"}}>
+          <div style={{maxWidth:980,marginBottom:28}}>
+            <div style={{fontSize:11,fontWeight:700,letterSpacing:"1.8px",textTransform:"uppercase",color:"#92400e",marginBottom:10}}>India ↔ Germany decision tools</div>
+            <h1 className="journey-title" style={{fontFamily:"'Cormorant Garamond',serif",fontWeight:700,lineHeight:1.04,color:C.ltxt,marginBottom:12,maxWidth:980}}>
+              Choose the decision you're facing.
+            </h1>
+            <p style={{fontSize:16,color:C.ltxt2,lineHeight:1.65,maxWidth:620}}>
+              Compare the real costs and next steps for work, study, a job search, or a return to India.
+            </p>
+          </div>
+          <div className="jband-grid" style={{display:"grid",gridTemplateColumns:"repeat(4,minmax(0,1fr))",gap:12}}>
+            {([
+              {d:"in2de" as Dir,title:"Work Move",direction:"India → Germany",description:"Evaluate a German offer against take-home pay and city costs."},
+              {d:"de2in" as Dir,title:"Return to India",direction:"Germany → India",description:"Compare an Indian offer with the lifestyle you have in Germany."},
+              {d:"student" as Dir,title:"Study in Germany",direction:"Plan study costs",description:"Estimate study costs, upfront funds, and your monthly gap."},
+              {d:"opp" as Dir,title:"Job Search",direction:"Plan before you move",description:"Estimate your savings runway and target salary."},
+            ]).map(item=>(
+              <button key={item.d} type="button" className="jcard" aria-pressed={dir===item.d} onClick={()=>{
+                setDir(item.d);
+                setWhatIfGross(null);
+                setTimeout(()=>document.getElementById("calculator")?.scrollIntoView({behavior:"smooth",block:"start"}),50);
+              }} style={{minHeight:176,padding:"20px 18px",borderRadius:8,border:"1px solid rgba(0,0,0,.12)",background:"#fff",color:C.ltxt,textAlign:"left",fontFamily:"Outfit,sans-serif"}}>
+                <span style={{display:"block",fontSize:11,fontWeight:700,letterSpacing:"1.2px",textTransform:"uppercase",color:"#92400e",marginBottom:8}}>{item.direction}</span>
+                <span style={{display:"block",fontFamily:"'Cormorant Garamond',serif",fontSize:24,fontWeight:700,lineHeight:1.1,marginBottom:8}}>{item.title}</span>
+                <span style={{display:"block",fontSize:13,color:C.ltxt2,lineHeight:1.5}}>{item.description}</span>
+              </button>
+            ))}
+          </div>
         </div>
       </section>
 
@@ -2467,7 +2467,7 @@ export default function App() {
       })()}
 
       {/* ASK SUPRADEEP FAB */}
-      <button onClick={()=>{setSubmitted(false);setEmailError(false);setIntakeOpen(true);}} style={{position:"fixed",bottom:24,right:24,zIndex:200,background:C.gold,color:C.bg0,border:"none",borderRadius:24,padding:"10px 18px",fontFamily:"Outfit,sans-serif",fontSize:13,fontWeight:600,cursor:"pointer",boxShadow:"0 4px 16px rgba(0,0,0,.4)"}}>✉ Got a question?</button>
+      <button className="question-fab" aria-label="Ask TruePackage a question" onClick={()=>{setSubmitted(false);setEmailError(false);setIntakeOpen(true);}} style={{position:"fixed",bottom:24,right:24,zIndex:200,background:C.gold,color:C.bg0,border:"none",borderRadius:24,padding:"10px 18px",fontFamily:"Outfit,sans-serif",fontSize:13,fontWeight:600,cursor:"pointer",boxShadow:"0 4px 16px rgba(0,0,0,.4)"}}>✉ Got a question?</button>
 
       {/* INTAKE MODAL */}
       {intakeOpen&&(

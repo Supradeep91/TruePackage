@@ -162,6 +162,12 @@
       "sourceType": "github",
       "skillPath": "skills/bmod-method/SKILL.md",
       "computedHash": "3a348901efbbbcd35e05ea4fa88973696a13b1070c4d2c919a2828f2e66e0bea"
+    },
+    "hallmark": {
+      "source": "nutlope/hallmark",
+      "sourceType": "github",
+      "skillPath": "skills/hallmark/SKILL.md",
+      "computedHash": "1829aba1cd4a115d91708e266a5b2699f8de219649a5dde762a009f75af08526"
     }
   }
 }
